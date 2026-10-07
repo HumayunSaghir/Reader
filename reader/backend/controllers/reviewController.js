@@ -140,4 +140,32 @@ const deleteReply = async (req, res) => {
   }
 };
 
-module.exports = { addReview, getBookReviews, toggleLikeReview, addReply, toggleLikeReply, deleteReview, deleteReply };
+const getReviewSummary = async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ message: 'Book not found' });
+
+    const reviews = await Review.find({ book: req.params.id });
+    if (reviews.length === 0) {
+      return res.json({ summary: "There are no reviews yet to summarize." });
+    }
+
+    const reviewTexts = reviews.map(r => `Rating: ${r.rating}/5, Review: ${r.reviewText}`).join('\n');
+    
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+
+    const prompt = `You are an AI summarizing community reviews for the book "${book.title}". Here are the community reviews:\n${reviewTexts}\n\nPlease provide a concise, 2-3 sentence summary of the general community consensus. Do not list individual reviews, just summarize the overall sentiment and common themes mentioned by readers.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    res.json({ summary: text });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { addReview, getBookReviews, toggleLikeReview, addReply, toggleLikeReply, deleteReview, deleteReply, getReviewSummary };
