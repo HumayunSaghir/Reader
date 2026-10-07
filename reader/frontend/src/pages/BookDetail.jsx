@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
 import './BookDetail.css';
+import { FALLBACK_IMAGE } from '../assets/fallbackImage';
+import ReviewItem from '../components/ReviewItem';
 
 const BookDetail = () => {
   const { id } = useParams();
@@ -24,14 +26,22 @@ const BookDetail = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const fetchReviews = async () => {
+    try {
+      const { data: reviewsData } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/${id}/reviews`);
+      setReviews(reviewsData);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     const fetchBookAndReviews = async () => {
       try {
         const { data: bookData } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/${id}`);
         setBook(bookData);
         
-        const { data: reviewsData } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/${id}/reviews`);
-        setReviews(reviewsData);
+        await fetchReviews();
 
         if (user) {
           const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -82,8 +92,8 @@ const BookDetail = () => {
     if (rating === 0 || rating === '0') return showToast("Please provide a star rating (1-5).");
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data: newReview } = await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/reviews`, { rating, reviewText }, config);
-      setReviews([...reviews, newReview]);
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/reviews`, { rating, reviewText }, config);
+      await fetchReviews();
       setReviewText('');
     } catch (error) {
       console.error(error);
@@ -107,7 +117,12 @@ const BookDetail = () => {
       
       <div className="book-header">
         <div className="book-cover-large-container">
-          <img src={book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg').replace('-M.jpg', '-L.jpg') : 'https://via.placeholder.com/300x450?text=No+Cover'} alt={book.title} className="book-cover-large" />
+          <img 
+            src={book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg').replace('-M.jpg', '-L.jpg') : FALLBACK_IMAGE} 
+            alt={book.title} 
+            className="book-cover-large" 
+            onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
+          />
         </div>
         <div className="book-details-info">
           <h1>{book.title}</h1>
@@ -171,14 +186,7 @@ const BookDetail = () => {
 
         <div className="reviews-list">
           {reviews.map(review => (
-            <div key={review._id} className="review-card glass-panel">
-              <div className="review-header">
-                <span className="reviewer-name">{review.user?.name || 'Anonymous'}</span>
-                <span className="review-rating">{'⭐'.repeat(review.rating)}</span>
-              </div>
-              <p className="review-text">{review.reviewText}</p>
-              <span className="review-date">{new Date(review.createdAt).toLocaleDateString()}</span>
-            </div>
+            <ReviewItem key={review._id} review={review} user={user} bookId={id} fetchReviews={fetchReviews} />
           ))}
           {reviews.length === 0 && <p className="no-reviews">No reviews yet. Be the first!</p>}
         </div>

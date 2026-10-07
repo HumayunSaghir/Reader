@@ -1,15 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './BookCard.css';
+import { FALLBACK_IMAGE } from '../assets/fallbackImage';
 
 const BookCard = ({ book, bgColor, categoryColor }) => {
-  const highResImage = book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg').replace('-M.jpg', '-L.jpg') : '';
+  const highResImage = book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg').replace('-M.jpg', '-L.jpg') : FALLBACK_IMAGE;
 
   return (
     <Link to={`/books/${book._id}`} className="book-card-container">
       <div className="book-card-block" style={{ backgroundColor: bgColor }}>
         <div className="book-cover-wrapper">
-          <img src={highResImage} alt={book.title} className="book-cover-img" loading="lazy" />
+          <img 
+            src={highResImage} 
+            alt={book.title} 
+            className="book-cover-img" 
+            loading="lazy" 
+            onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
+          />
         </div>
       </div>
       <div className="book-card-meta">

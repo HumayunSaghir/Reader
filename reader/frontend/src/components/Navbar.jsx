@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
+import { FALLBACK_IMAGE } from '../assets/fallbackImage';
 import './Navbar.css';
 
 const Navbar = ({ toggleTheme, theme }) => {
@@ -106,7 +107,12 @@ const Navbar = ({ toggleTheme, theme }) => {
                             padding: '0.75rem 1rem', cursor: 'pointer', display: 'flex', gap: '0.75rem', alignItems: 'center', borderBottom: '1px solid var(--border-color)'
                           }}
                         >
-                          <img src={b.coverImage} alt="Cover" style={{width: '32px', height: '48px', objectFit: 'cover', borderRadius: '4px'}} />
+                          <img 
+                            src={b.coverImage || FALLBACK_IMAGE} 
+                            alt="Cover" 
+                            style={{width: '32px', height: '48px', objectFit: 'cover', borderRadius: '4px'}} 
+                            onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
+                          />
                           <div>
                             <div style={{fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>{b.title}</div>
                             <div style={{fontSize: '0.75rem', color: 'var(--text-muted)'}}>{b.author}</div>
@@ -124,8 +130,17 @@ const Navbar = ({ toggleTheme, theme }) => {
             </button>
 
             {user ? (
-              <div className="user-menu">
-                <Link to="/profile" className="nav-link profile-link" onClick={() => setMenuOpen(false)}>Profile</Link>
+              <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Link to="/profile" className="nav-link profile-link" onClick={() => setMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {user.avatar ? (
+                    <img src={`${import.meta.env.VITE_API_URL}${user.avatar}`} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--brand-color)', color: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="profile-name">Profile</span>
+                </Link>
                 <button onClick={handleLogout} className="btn-logout">Logout</button>
               </div>
             ) : (

@@ -53,6 +53,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-y: scroll;
 }
 
 input, textarea, button, select {
@@ -80,10 +81,7 @@ body {
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
   transition: background-color 0.3s, color 0.3s;
-  overflow-y: scroll;
 }
 
 .app-container {

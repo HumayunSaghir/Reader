@@ -18,6 +18,7 @@ const registerUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        avatar: user.avatar,
         token: generateToken(user._id)
       });
     } else {
@@ -38,6 +39,7 @@ const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        avatar: user.avatar,
         token: generateToken(user._id)
       });
     } else {
@@ -51,10 +53,32 @@ const loginUser = async (req, res) => {
 const getUserProfile = async (req, res) => {
   const user = await User.findById(req.user._id);
   if (user) {
-    res.json({ _id: user._id, name: user.name, email: user.email });
+    res.json({ _id: user._id, name: user.name, email: user.email, avatar: user.avatar });
   } else {
     res.status(404).json({ message: 'User not found' });
   }
 };
 
-module.exports = { registerUser, loginUser, getUserProfile };
+const uploadPhoto = async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (user) {
+    if (req.file) {
+      user.avatar = `/${req.file.path.replace(/\\/g, '/')}`;
+      const updatedUser = await user.save();
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        avatar: updatedUser.avatar,
+        token: generateToken(updatedUser._id)
+      });
+    } else {
+      res.status(400).json({ message: 'No file uploaded' });
+    }
+  } else {
+    res.status(404).json({ message: 'User not found' });
+  }
+};
+
+module.exports = { registerUser, loginUser, getUserProfile, uploadPhoto };

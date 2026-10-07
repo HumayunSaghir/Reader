@@ -39,7 +39,7 @@ const Home = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [heroContent, setHeroContent] = useState(heroContentOptions[0]);
 
-  const skipNextFetch = React.useRef(books.length > 0);
+  const lastFetched = React.useRef({ niche: activeNiche, page: page, loaded: books.length > 0 });
 
   const niches = ['All', 'Fiction', 'Science', 'History', 'Technology', 'Fantasy', 'Mystery', 'Romance', 'Thriller'];
   const bgColors = ['var(--card-bg-1)', 'var(--card-bg-2)', 'var(--card-bg-3)', 'var(--card-bg-4)'];
@@ -59,7 +59,6 @@ const Home = () => {
     setBooks([]);
     setHasMore(true);
     setLoading(true);
-    skipNextFetch.current = false;
   };
 
   useEffect(() => {
@@ -70,10 +69,13 @@ const Home = () => {
 
 
   useEffect(() => {
-    if (skipNextFetch.current) {
-      skipNextFetch.current = false;
+    if (lastFetched.current.niche === activeNiche && 
+        lastFetched.current.page === page && 
+        lastFetched.current.loaded) {
       return;
     }
+
+    lastFetched.current = { niche: activeNiche, page: page, loaded: true };
 
     const fetchBooks = async () => {
       if (page === 1) setLoading(true);
