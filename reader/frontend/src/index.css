@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+
+:root {
+  --bg-app: #FFFFFF;
+  --bg-secondary: #F4F5F4;
+  --bg-accent: #CCFBC0;
+  --border-color: #E2E4E2;
+  --text-main: #0C1A11;
+  --text-muted: #575F5A;
+  
+  --card-bg-1: #CCFBC0;
+  --card-bg-2: #FAFAFA;
+  --card-bg-3: #EAFCE4;
+  --card-bg-4: #F3F4F3;
+  
+  --btn-bg: #0C1A11;
+  --btn-text: #FFFFFF;
+  --btn-hover: #1E3324;
+  
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  
+  --shadow-sm: 0 2px 4px rgba(12, 26, 17, 0.05);
+  --shadow-md: 0 4px 12px rgba(12, 26, 17, 0.08);
+}
+
+.dark {
+  --bg-app: #09130D;
+  --bg-secondary: #0D1C13;
+  --bg-accent: #213B28; 
+  --border-color: #1A2E20;
+  --text-main: #EAFCE4;
+  --text-muted: #8F9E94;
+  
+  --card-bg-1: #152E1D;
+  --card-bg-2: #0D1C13;
+  --card-bg-3: #1A3622;
+  --card-bg-4: #122417;
+
+  --btn-bg: #CCFBC0;
+  --btn-text: #09130D;
+  --btn-hover: #A3EA8C;
+  
+  --shadow-sm: 0 4px 6px rgba(0,0,0,0.4);
+  --shadow-md: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+input, textarea, button, select {
+  font-family: inherit;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--text-main);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  transition: background-color 0.3s, color 0.3s;
+  overflow-y: scroll;
+}
+
+.app-container {
+  background-color: var(--bg-app);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--text-main);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  outline: none;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover {
+  border-color: var(--text-main);
+}
+
+.btn-primary {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  border: 1px solid var(--btn-bg);
+}
+
+.btn-primary:hover {
+  background: var(--btn-hover);
+  border-color: var(--btn-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--border-color);
+}
+
+.input-field {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+.input-field:focus {
+  border-color: var(--text-main);
+  outline: none;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem 0 5rem 0;
+}
