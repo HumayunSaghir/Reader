@@ -21,6 +21,7 @@ const BookDetail = () => {
   const [reviewText, setReviewText] = useState('');
   
   const [shelfStatus, setShelfStatus] = useState(null);
+  const [activeCustomShelves, setActiveCustomShelves] = useState([]);
   const [toastMessage, setToastMessage] = useState(null);
 
   // New AI Features State
@@ -74,6 +75,7 @@ const BookDetail = () => {
           const currentBookShelf = shelves.find(s => s.book._id === id);
           if (currentBookShelf) {
             setShelfStatus(currentBookShelf.status);
+            setActiveCustomShelves(currentBookShelf.customShelves || []);
           }
         }
         
@@ -99,13 +101,40 @@ const BookDetail = () => {
     }
   };
 
+  const handleCustomShelfToggle = async (shelfName) => {
+    if (!user) return showToast("Please login first.");
+    const isAdding = !activeCustomShelves.includes(shelfName);
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/shelf`, { 
+        customShelf: shelfName, 
+        action: isAdding ? 'add' : 'remove' 
+      }, config);
+      
+      if (isAdding) {
+        setActiveCustomShelves([...activeCustomShelves, shelfName]);
+        showToast(`Added to ${shelfName}!`);
+      } else {
+        setActiveCustomShelves(activeCustomShelves.filter(s => s !== shelfName));
+        showToast(`Removed from ${shelfName}.`);
+      }
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to update shelf.");
+    }
+  };
+
   const removeShelf = async () => {
     if (!user) return showToast("Please login first.");
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/books/${id}/shelf`, config);
+      if (activeCustomShelves.length === 0) {
+        await axios.delete(`${import.meta.env.VITE_API_URL}/api/books/${id}/shelf`, config);
+      } else {
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/shelf`, { status: null }, config);
+      }
       setShelfStatus(null);
-      showToast('Book removed from your shelf.');
+      showToast('Status cleared.');
     } catch (error) {
       console.error(error);
     }
@@ -216,13 +245,34 @@ const BookDetail = () => {
           </div>
 
           <div className="shelf-actions">
-            <button className="btn-primary" onClick={() => handleShelfUpdate('want-to-read')}>Want to Read</button>
-            <button className="btn-secondary" onClick={() => handleShelfUpdate('currently-reading')}>Reading</button>
-            <button className="btn-secondary" onClick={() => handleShelfUpdate('read')}>Read</button>
+            <button className={`btn-primary ${shelfStatus === 'want-to-read' ? 'active' : ''}`} onClick={() => handleShelfUpdate('want-to-read')}>Want to Read</button>
+            <button className={`btn-secondary ${shelfStatus === 'currently-reading' ? 'active' : ''}`} onClick={() => handleShelfUpdate('currently-reading')}>Reading</button>
+            <button className={`btn-secondary ${shelfStatus === 'read' ? 'active' : ''}`} onClick={() => handleShelfUpdate('read')}>Read</button>
             {shelfStatus && (
-              <button className="btn-secondary" style={{ color: '#EF4444', borderColor: '#EF4444' }} onClick={removeShelf}>Remove from Shelf</button>
+              <button className="btn-secondary" style={{ color: '#EF4444', borderColor: '#EF4444' }} onClick={removeShelf}>Clear Status</button>
             )}
           </div>
+          
+          {user && user.customShelves && user.customShelves.length > 0 && (
+            <div className="custom-shelves-actions" style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>Custom Shelves:</span>
+              {user.customShelves.map(shelfName => (
+                <button 
+                  key={shelfName} 
+                  className={`btn-secondary ${activeCustomShelves.includes(shelfName) ? 'active-shelf' : ''}`}
+                  onClick={() => handleCustomShelfToggle(shelfName)}
+                  style={{ 
+                    padding: '0.3rem 0.8rem', 
+                    fontSize: '0.85rem',
+                    background: activeCustomShelves.includes(shelfName) ? 'var(--text-main)' : 'transparent',
+                    color: activeCustomShelves.includes(shelfName) ? 'var(--bg-app)' : 'var(--text-main)'
+                  }}
+                >
+                  {shelfName} {activeCustomShelves.includes(shelfName) ? '✓' : '+'}
+                </button>
+              ))}
+            </div>
+          )}
 
           <p className="description">{book.description}</p>
           

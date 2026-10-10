@@ -5,9 +5,10 @@ const shelfSchema = new mongoose.Schema({
   book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: true },
   status: { 
     type: String, 
-    required: true, 
+    required: false, 
     enum: ['want-to-read', 'currently-reading', 'read'] 
-  }
+  },
+  customShelves: [{ type: String }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Shelf', shelfSchema);

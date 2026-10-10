@@ -19,6 +19,7 @@ const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
+        customShelves: user.customShelves,
         token: generateToken(user._id)
       });
     } else {
@@ -40,6 +41,7 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
+        customShelves: user.customShelves,
         token: generateToken(user._id)
       });
     } else {
@@ -53,7 +55,7 @@ const loginUser = async (req, res) => {
 const getUserProfile = async (req, res) => {
   const user = await User.findById(req.user._id);
   if (user) {
-    res.json({ _id: user._id, name: user.name, email: user.email, avatar: user.avatar });
+    res.json({ _id: user._id, name: user.name, email: user.email, avatar: user.avatar, customShelves: user.customShelves });
   } else {
     res.status(404).json({ message: 'User not found' });
   }
@@ -71,6 +73,7 @@ const uploadPhoto = async (req, res) => {
         name: updatedUser.name,
         email: updatedUser.email,
         avatar: updatedUser.avatar,
+        customShelves: updatedUser.customShelves,
         token: generateToken(updatedUser._id)
       });
     } else {
@@ -81,4 +84,32 @@ const uploadPhoto = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getUserProfile, uploadPhoto };
+const addCustomShelf = async (req, res) => {
+  const { shelfName } = req.body;
+  if (!shelfName) return res.status(400).json({ message: 'Shelf name is required' });
+  
+  const user = await User.findById(req.user._id);
+  if (!user.customShelves.includes(shelfName)) {
+    user.customShelves.push(shelfName);
+    await user.save();
+  }
+  res.json(user.customShelves);
+};
+
+const removeCustomShelf = async (req, res) => {
+  const { shelfName } = req.params;
+  const user = await User.findById(req.user._id);
+  
+  user.customShelves = user.customShelves.filter(s => s !== shelfName);
+  await user.save();
+  
+  const Shelf = require('../models/Shelf');
+  await Shelf.updateMany(
+    { user: user._id },
+    { $pull: { customShelves: shelfName } }
+  );
+  
+  res.json(user.customShelves);
+};
+
+module.exports = { registerUser, loginUser, getUserProfile, uploadPhoto, addCustomShelf, removeCustomShelf };

@@ -155,18 +155,36 @@ const addBook = async (req, res) => {
 };
 
 const updateShelf = async (req, res) => {
-  const { status } = req.body;
+  const { status, customShelf, action } = req.body;
   const bookId = req.params.id;
   const userId = req.user._id;
 
   try {
     let shelf = await Shelf.findOne({ user: userId, book: bookId });
-    if (shelf) {
-      shelf.status = status;
-      await shelf.save();
-    } else {
-      shelf = await Shelf.create({ user: userId, book: bookId, status });
+    if (!shelf) {
+      shelf = new Shelf({ user: userId, book: bookId });
     }
+    
+    if (status !== undefined) {
+      shelf.status = status;
+    }
+    
+    if (customShelf) {
+      if (action === 'add') {
+        if (!shelf.customShelves.includes(customShelf)) {
+          shelf.customShelves.push(customShelf);
+        }
+      } else if (action === 'remove') {
+        shelf.customShelves = shelf.customShelves.filter(s => s !== customShelf);
+      }
+    }
+    
+    if (!shelf.status && shelf.customShelves.length === 0) {
+      if (shelf._id) await Shelf.findByIdAndDelete(shelf._id);
+      return res.json({ message: 'Removed from all shelves' });
+    }
+    
+    await shelf.save();
     res.json(shelf);
   } catch (error) {
     res.status(500).json({ message: error.message });
