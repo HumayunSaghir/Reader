@@ -1,0 +1,327 @@
+.reading-heatmap-card {
+  padding: 1.75rem;
+  margin-bottom: 2rem;
+  border-radius: 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: visible;
+}
+
+/* Header Area */
+.heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.heatmap-title-area h3 {
+  margin: 0 0 0.35rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.35rem;
+  color: var(--text-main);
+}
+
+.heatmap-title-area .title-icon {
+  color: #10b981;
+}
+
+.heatmap-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Log Today Button */
+.btn-log-reading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.15rem;
+  background: #10b981;
+  color: #ffffff;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-log-reading:hover:not(:disabled) {
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.btn-log-reading:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-log-reading.logged {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: none;
+  cursor: default;
+}
+
+/* Streak Metrics Row */
+.streak-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.metric-badge {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.metric-badge:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+.metric-badge.streak-active {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: linear-gradient(135deg, var(--bg-app) 70%, rgba(249, 115, 22, 0.08));
+}
+
+.metric-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-icon-box.flame {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+}
+
+.metric-icon-box.trophy {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+}
+
+.metric-icon-box.calendar {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.metric-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.15rem;
+}
+
+/* Heatmap Graph Container */
+.heatmap-graph-wrapper {
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  border-radius: 8px;
+}
+
+.heatmap-graph-inner {
+  min-width: 820px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Month labels row */
+.month-labels-row {
+  display: flex;
+  height: 18px;
+  margin-bottom: 6px;
+  position: relative;
+}
+
+.day-label-spacer {
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.month-labels-container {
+  position: relative;
+  flex: 1;
+  height: 18px;
+}
+
+.month-label {
+  position: absolute;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  user-select: none;
+}
+
+/* Day labels & Columns Grid */
+.grid-with-day-labels {
+  display: flex;
+  gap: 6px;
+}
+
+.day-labels-col {
+  width: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 0 8px 0;
+  user-select: none;
+}
+
+.day-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.heatmap-columns {
+  display: flex;
+  gap: 3px;
+}
+
+.heatmap-week-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Heatmap Squares */
+.heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  outline: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.35);
+  z-index: 10;
+  outline: 1px solid #ffffff;
+}
+
+/* Levels based on intensity */
+.heatmap-cell.level-0 {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.heatmap-cell.level-1 {
+  background: #064e3b;
+}
+
+.heatmap-cell.level-2 {
+  background: #059669;
+}
+
+.heatmap-cell.level-3 {
+  background: #10b981;
+}
+
+.heatmap-cell.level-4 {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+}
+
+/* Heatmap Footer & Legend */
+.heatmap-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.footer-tip {
+  font-size: 0.82rem;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0 2px;
+}
+
+.heatmap-legend .heatmap-cell {
+  cursor: default;
+}
+
+.heatmap-legend .heatmap-cell:hover {
+  transform: none;
+  outline: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Floating Tooltip */
+.heatmap-tooltip {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+
+.heatmap-tooltip strong {
+  color: #34d399;
+}
+
+.heatmap-tooltip span {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.72rem;
+}

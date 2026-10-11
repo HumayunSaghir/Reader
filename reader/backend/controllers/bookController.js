@@ -1,6 +1,7 @@
 const Book = require('../models/Book');
 const Shelf = require('../models/Shelf');
 const Activity = require('../models/Activity');
+const { recordReadingActivity } = require('./readingLogController');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const fetchAndSaveFromOpenLibrary = async (query, maxResults = 10, page = 1) => {
@@ -213,6 +214,11 @@ const updateShelf = async (req, res) => {
     if (status !== undefined) {
       if (shelf.status !== status) {
         shelf.status = status;
+        if (status === 'read') {
+          shelf.readAt = new Date();
+        } else {
+          shelf.readAt = null;
+        }
         if (status) {
           await Activity.create({ user: userId, book: bookId, type: 'shelf_status', status });
         }

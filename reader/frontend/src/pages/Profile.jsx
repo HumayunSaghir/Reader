@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import './Profile.css';
 import { FALLBACK_IMAGE } from '../assets/fallbackImage';
 import { Trash2, Plus } from 'lucide-react';
+import ReadingHeatmap from '../components/ReadingHeatmap';
+import ReadingChallenge from '../components/ReadingChallenge';
 
 const Profile = () => {
   const [shelves, setShelves] = useState([]);
@@ -199,6 +201,12 @@ const Profile = () => {
           <input type="file" style={{ display: 'none' }} ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" />
         </div>
       </div>
+      
+      {/* Yearly Reading Challenge & Spotify Wrapped */}
+      <ReadingChallenge user={user} />
+
+      {/* Reading Streaks & Heatmap Contribution Graph */}
+      <ReadingHeatmap user={user} />
       
       <div className="create-shelf-section glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0, whiteSpace: 'nowrap' }}>Custom Shelves</h3>

@@ -1,0 +1,506 @@
+/* Yearly Reading Challenge Widget Styles */
+.reading-challenge-container {
+  padding: 1.75rem;
+  margin-bottom: 2rem;
+  border-radius: 20px;
+  background: var(--card-bg-2, #0D1C13);
+  border: 1px solid var(--border-color, #1A2E20);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+/* Header */
+.challenge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.challenge-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.challenge-trophy-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(204, 251, 192, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.trophy-icon {
+  color: #CCFBC0;
+}
+
+.challenge-tagline {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #10B981;
+}
+
+.challenge-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-family: var(--font-heading);
+  color: var(--text-main);
+}
+
+.challenge-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.challenge-year-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.45rem 0.8rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.challenge-btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s;
+}
+
+.challenge-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Spotify Wrapped Button */
+.challenge-btn-wrapped {
+  background: linear-gradient(135deg, #10B981 0%, #8B5CF6 50%, #EC4899 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+  color: #FFFFFF;
+  border: none;
+  padding: 0.48rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  transition: all 0.2s;
+}
+
+.challenge-btn-wrapped:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.sparkle-anim {
+  animation: spinSlow 6s linear infinite;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Feedback message */
+.challenge-feedback-msg {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6EE7B7;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+/* Goal editor box */
+.challenge-edit-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px dashed rgba(16, 185, 129, 0.4);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.edit-box-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.edit-box-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quick-adjust-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.challenge-target-input {
+  width: 70px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+  color: #CCFBC0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 0.35rem;
+  border-radius: 8px;
+}
+
+.books-unit {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.edit-save-btn {
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+/* Loading */
+.challenge-loading {
+  padding: 2.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* Metric Row */
+.challenge-metric-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.metric-counts {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.metric-completed {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #CCFBC0;
+  line-height: 1;
+}
+
+.metric-divider {
+  font-size: 1.8rem;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+.metric-target {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-left: 0.2rem;
+}
+
+.metric-pct {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #10B981;
+  margin-left: 0.4rem;
+}
+
+/* Pace badge */
+.pace-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+}
+
+.pace-ahead {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34D399;
+}
+
+.pace-on_track {
+  background: rgba(6, 182, 212, 0.18);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #22D3EE;
+}
+
+.pace-behind {
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #FBBF24;
+}
+
+.pace-completed {
+  background: rgba(234, 179, 8, 0.2);
+  border: 1px solid rgba(234, 179, 8, 0.5);
+  color: #FDE047;
+}
+
+/* Progress Bar */
+.challenge-bar-container {
+  position: relative;
+  margin: 0.2rem 0 1.2rem 0;
+}
+
+.challenge-bar-track {
+  width: 100%;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.challenge-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #059669 0%, #10B981 50%, #A3EA8C 100%);
+  border-radius: 999px;
+  position: relative;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bar-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
+  animation: barShimmer 2.5s infinite;
+}
+
+@keyframes barShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.bar-milestones {
+  position: relative;
+  height: 18px;
+  margin-top: 4px;
+}
+
+.milestone-pip {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.milestone-pip.reached {
+  color: #10B981;
+  font-weight: 700;
+}
+
+/* Chips / Pills */
+.challenge-pills-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.challenge-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--text-main);
+}
+
+.text-purple { color: #C084FC; }
+.text-amber { color: #FBBF24; }
+.text-emerald { color: #34D399; }
+
+/* Completed Books Carousel */
+.challenge-books-section {
+  border-top: 1px solid var(--border-color);
+  padding-top: 1rem;
+}
+
+.challenge-books-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.open-wrapped-link {
+  background: none;
+  border: none;
+  color: #10B981;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: color 0.2s;
+}
+
+.open-wrapped-link:hover {
+  color: #A3EA8C;
+}
+
+.challenge-books-carousel {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+
+.challenge-book-card {
+  flex: 0 0 76px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-decoration: none;
+  color: var(--text-main);
+  transition: transform 0.2s;
+}
+
+.challenge-book-card:hover {
+  transform: translateY(-4px);
+}
+
+.book-card-cover-wrap {
+  position: relative;
+  width: 76px;
+  height: 110px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  background: #000;
+}
+
+.book-card-cover-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.book-check-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10B981;
+  color: #060B08;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
+.challenge-book-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.challenge-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .reading-challenge-container {
+    padding: 1.25rem;
+  }
+  .challenge-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .challenge-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .metric-completed {
+    font-size: 2rem;
+  }
+}

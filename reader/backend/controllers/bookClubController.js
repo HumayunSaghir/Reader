@@ -1,5 +1,6 @@
 const BookClub = require('../models/BookClub');
 const Book = require('../models/Book');
+const { recordReadingActivity } = require('./readingLogController');
 
 // Get all clubs
 const getClubs = async (req, res) => {
@@ -91,6 +92,7 @@ const updateProgress = async (req, res) => {
     if (action === 'add') {
       if (!member.readChapters.includes(chapterIndex)) {
         member.readChapters.push(chapterIndex);
+        await recordReadingActivity(req.user._id, club.book);
       }
     } else if (action === 'remove') {
       member.readChapters = member.readChapters.filter(c => c !== chapterIndex);

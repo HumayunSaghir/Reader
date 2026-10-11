@@ -8,6 +8,7 @@ const shelfSchema = new mongoose.Schema({
     required: false, 
     enum: ['want-to-read', 'currently-reading', 'read'] 
   },
+  readAt: { type: Date },
   customShelves: [{ type: String }]
 }, { timestamps: true });
 

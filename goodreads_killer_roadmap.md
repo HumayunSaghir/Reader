@@ -28,9 +28,9 @@ To beat Goodreads, we need to focus on what it lacks: **modern UI, intelligent f
 ## 🎮 Phase 3: Gamification & Progress Tracking
 *People love tracking stats. We can make it beautiful.*
 
-*   **Reading Streaks & Heatmaps**: A GitHub-style contribution graph showing which days the user read a book.
+*   **Reading Streaks & Heatmaps**: A GitHub-style contribution graph showing which days the user read a book. -> DONE
 *   **Detailed Progress Updates**: Instead of just "Currently Reading," allow users to log progress by page number or percentage (e.g., *Page 145/300*).
-*   **Yearly Reading Challenge**: Users set a goal (e.g., 50 books). The app generates a beautiful, shareable infographic (like Spotify Wrapped) at the end of the year.
+*   **Yearly Reading Challenge**: Users set a goal (e.g., 50 books). The app generates a beautiful, shareable infographic (like Spotify Wrapped) at the end of the year. -> DONE
 
 ---
 
