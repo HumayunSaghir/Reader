@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { 
   X, 
   Sparkles, 
@@ -8,11 +8,11 @@ import {
   Check, 
   Flame, 
   BookOpen, 
-  Award, 
   ChevronLeft, 
   ChevronRight,
-  TrendingUp,
-  Calendar
+  Calendar,
+  Bookmark,
+  Target
 } from 'lucide-react';
 import './ReaderWrappedModal.css';
 import { FALLBACK_IMAGE } from '../assets/fallbackImage';
@@ -22,7 +22,6 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
   const [storyIndex, setStoryIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const posterRef = useRef(null);
 
   if (!wrappedData) return null;
 
@@ -45,15 +44,15 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
   const storySlides = [
     {
       id: 'total',
-      tag: 'THE VOYAGE',
-      title: 'Your 2026 Chapter Count',
+      tag: 'READING VOLUME',
+      title: 'Your Annual Chapter Count',
       content: (
         <div className="story-stat-hero">
           <div className="story-giant-number">{completedCount}</div>
-          <p className="story-stat-label">Books Completed This Year</p>
+          <p className="story-stat-label">Books Read in {year}</p>
           <div className="story-meta-pills">
             <span className="story-pill">{percentage}% of your {target}-book goal</span>
-            <span className="story-pill">~{estimatedPages.toLocaleString()} pages explored</span>
+            <span className="story-pill">~{estimatedPages.toLocaleString()} pages read</span>
           </div>
         </div>
       )
@@ -64,20 +63,20 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
       title: persona?.title || 'The Dedicated Reader',
       content: (
         <div className="story-persona-card">
-          <div className="persona-badge-glow">{persona?.badge || '✨ Story Voyager'}</div>
+          <div className="persona-badge-glow">{persona?.badge || 'Story Voyager'}</div>
           <p className="persona-desc">{persona?.description}</p>
         </div>
       )
     },
     {
       id: 'genre',
-      tag: 'YOUR UNIVERSE',
-      title: `Top Genre: ${topGenre}`,
+      tag: 'FAVORITE GENRES',
+      title: `Top Category: ${topGenre}`,
       content: (
         <div className="story-genres-list">
           {topGenres.length > 0 ? topGenres.map((g, i) => (
             <div key={g.name} className="story-genre-row">
-              <span className="genre-rank">#{i + 1}</span>
+              <span className="genre-rank">0{i + 1}</span>
               <span className="genre-name">{g.name}</span>
               <div className="genre-bar-track">
                 <div className="genre-bar-fill" style={{ width: `${Math.max(15, g.percentage)}%` }}></div>
@@ -85,15 +84,15 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
               <span className="genre-pct">{g.percentage}%</span>
             </div>
           )) : (
-            <p style={{ color: 'rgba(255,255,255,0.7)' }}>A diverse mix of captivating titles.</p>
+            <p className="story-muted-note">A wide exploration across diverse literature.</p>
           )}
         </div>
       )
     },
     {
       id: 'topbook',
-      tag: 'HIGHEST PRAISE',
-      title: 'Your Standout Title',
+      tag: 'STANDOUT TITLE',
+      title: topBook ? topBook.title : 'Your Next Great Read',
       content: (
         <div className="story-top-book">
           {topBook ? (
@@ -115,25 +114,25 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
               </div>
             </>
           ) : (
-            <p style={{ color: 'rgba(255,255,255,0.7)' }}>No ratings logged yet. Finish your next read to crown a champion!</p>
+            <p className="story-muted-note">Keep logging books to spotlight your top-rated favorite of the year.</p>
           )}
         </div>
       )
     },
     {
       id: 'streak',
-      tag: 'DEDICATION',
-      title: 'Habits of a Bookworm',
+      tag: 'READING DISCIPLINE',
+      title: 'Consistency & Habits',
       content: (
         <div className="story-dedication-grid">
           <div className="story-dedication-box">
-            <Flame className="dedication-icon text-amber" size={32} />
-            <span className="dedication-num">{longestStreak} Days</span>
+            <Flame className="dedication-icon text-amber" size={28} />
+            <span className="dedication-num">{longestStreak} {longestStreak === 1 ? 'Day' : 'Days'}</span>
             <span className="dedication-label">Longest Reading Streak</span>
           </div>
           <div className="story-dedication-box">
-            <Calendar className="dedication-icon text-emerald" size={32} />
-            <span className="dedication-num">{totalDaysActive} Days</span>
+            <Calendar className="dedication-icon text-emerald" size={28} />
+            <span className="dedication-num">{totalDaysActive} {totalDaysActive === 1 ? 'Day' : 'Days'}</span>
             <span className="dedication-label">Active Reading Days</span>
           </div>
         </div>
@@ -141,7 +140,7 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
     }
   ];
 
-  // Generate downloadable high-res image via HTML5 Canvas
+  // Generate downloadable high-res image via HTML5 Canvas (Clean luxury design)
   const handleDownloadImage = async () => {
     try {
       setDownloading(true);
@@ -152,158 +151,168 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // 1. Background gradient (Spotify Wrapped dark obsidian with mesh colors)
-      const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-      bgGrad.addColorStop(0, '#09130D');
-      bgGrad.addColorStop(0.35, '#0E1F14');
-      bgGrad.addColorStop(0.7, '#15132B');
-      bgGrad.addColorStop(1, '#060B08');
+      // 1. Background (Rich Obsidian & Dark Emerald gradient)
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+      bgGrad.addColorStop(0, '#09150D');
+      bgGrad.addColorStop(0.5, '#060E09');
+      bgGrad.addColorStop(1, '#040805');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // Radial glowing bursts
-      const rad1 = ctx.createRadialGradient(180, 200, 10, 180, 200, 500);
-      rad1.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
-      rad1.addColorStop(1, 'rgba(16, 185, 129, 0)');
-      ctx.fillStyle = rad1;
+      // Subtle atmospheric emerald glow
+      const radialGlow = ctx.createRadialGradient(250, 200, 50, 250, 200, 650);
+      radialGlow.addColorStop(0, 'rgba(16, 185, 129, 0.12)');
+      radialGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+      ctx.fillStyle = radialGlow;
       ctx.fillRect(0, 0, width, height);
 
-      const rad2 = ctx.createRadialGradient(900, 1000, 10, 900, 1000, 600);
-      rad2.addColorStop(0, 'rgba(168, 85, 247, 0.3)');
-      rad2.addColorStop(1, 'rgba(168, 85, 247, 0)');
-      ctx.fillStyle = rad2;
-      ctx.fillRect(0, 0, width, height);
+      // Card outer frame
+      ctx.strokeStyle = 'rgba(204, 251, 192, 0.18)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(40, 40, width - 80, height - 80);
 
-      // Border outline glow
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(30, 30, width - 60, height - 60);
+      // 2. Header
+      ctx.fillStyle = '#CCFBC0';
+      ctx.font = '800 28px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('READER', 90, 115);
 
-      // 2. Header Branding
-      ctx.fillStyle = '#A3EA8C';
-      ctx.font = '800 36px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(`READER WRAPPED '${String(year).slice(-2)}`, 80, 110);
+      ctx.fillStyle = 'rgba(234, 252, 228, 0.6)';
+      ctx.font = '600 20px "Inter", sans-serif';
+      ctx.fillText(`•   ${year} ANNUAL RECAP`, 230, 115);
 
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '600 24px "Inter", sans-serif';
-      ctx.fillText(`${userName}'s Reading Journey`, 80, 155);
-
-      // 3. Giant Stat
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.font = '600 22px "Inter", sans-serif';
-      ctx.fillText('TOTAL BOOKS READ', 80, 240);
-
-      ctx.fillStyle = '#CCFBC0';
-      ctx.font = '900 130px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(`${completedCount}`, 80, 370);
-
-      ctx.fillStyle = '#E5E7EB';
-      ctx.font = '600 26px "Inter", sans-serif';
-      ctx.fillText(`${percentage}% of ${target} book goal  •  ~${estimatedPages.toLocaleString()} pages`, 80, 420);
+      ctx.font = '700 26px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(userName, 90, 160);
 
       // Divider line
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(80, 465);
-      ctx.lineTo(width - 80, 465);
+      ctx.moveTo(90, 200);
+      ctx.lineTo(width - 90, 200);
       ctx.stroke();
 
-      // 4. Persona Card
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-      ctx.roundRect(80, 500, width - 160, 170, 24);
-      ctx.fill();
-
-      ctx.fillStyle = '#E879F9';
-      ctx.font = '700 20px "Inter", sans-serif';
-      ctx.fillText(persona?.badge?.toUpperCase() || 'READING PERSONA', 115, 545);
+      // 3. Hero Metric
+      ctx.fillStyle = '#A3EA8C';
+      ctx.font = '700 18px "Inter", sans-serif';
+      ctx.fillText('TOTAL BOOKS READ', 90, 250);
 
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '800 36px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(persona?.title || 'The Dedicated Reader', 115, 595);
+      ctx.font = '900 120px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(`${completedCount}`, 90, 375);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.font = '400 20px "Inter", sans-serif';
-      ctx.fillText(persona?.description || '', 115, 635);
+      ctx.fillStyle = 'rgba(234, 252, 228, 0.75)';
+      ctx.font = '500 24px "Inter", sans-serif';
+      ctx.fillText(`${percentage}% of ${target} book goal   •   ~${estimatedPages.toLocaleString()} pages read`, 90, 430);
 
-      // 5. Highlights Grid
-      // Box 1: Top Genre
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-      ctx.roundRect(80, 700, 440, 170, 24);
+      // 4. Reading Persona Card
+      ctx.fillStyle = 'rgba(204, 251, 192, 0.04)';
+      ctx.strokeStyle = 'rgba(204, 251, 192, 0.16)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(90, 480, width - 180, 190, 20);
       ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#10B981';
+      ctx.font = '700 18px "Inter", sans-serif';
+      ctx.fillText((persona?.badge || 'READING PERSONA').toUpperCase(), 130, 530);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 34px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(persona?.title || 'The Dedicated Reader', 130, 580);
+
+      ctx.fillStyle = 'rgba(234, 252, 228, 0.8)';
+      ctx.font = '400 20px "Inter", sans-serif';
+      ctx.fillText(persona?.description || '', 130, 625);
+
+      // 5. Stats Grid (2 x 2)
+      // Cell 1: Top Genre
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.beginPath();
+      ctx.roundRect(90, 700, 435, 170, 18);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(234, 252, 228, 0.55)';
+      ctx.font = '600 16px "Inter", sans-serif';
+      ctx.fillText('TOP GENRE', 125, 745);
 
       ctx.fillStyle = '#34D399';
-      ctx.font = '600 18px "Inter", sans-serif';
-      ctx.fillText('#1 TOP GENRE', 115, 745);
+      ctx.font = '800 30px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(topGenre, 125, 795);
 
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '800 32px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(topGenre, 115, 795);
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillStyle = 'rgba(234, 252, 228, 0.65)';
       ctx.font = '400 18px "Inter", sans-serif';
-      ctx.fillText(`Your most explored realm`, 115, 835);
+      ctx.fillText('Your most explored category', 125, 835);
 
-      // Box 2: Longest Streak
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-      ctx.roundRect(560, 700, 440, 170, 24);
+      // Cell 2: Consistency
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.beginPath();
+      ctx.roundRect(555, 700, 435, 170, 18);
       ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(234, 252, 228, 0.55)';
+      ctx.font = '600 16px "Inter", sans-serif';
+      ctx.fillText('LONGEST STREAK', 590, 745);
 
       ctx.fillStyle = '#FBBF24';
-      ctx.font = '600 18px "Inter", sans-serif';
-      ctx.fillText('🔥 LONGEST STREAK', 595, 745);
+      ctx.font = '800 30px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(`${longestStreak} Consecutive Days`, 590, 795);
 
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '800 32px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(`${longestStreak} Consecutive Days`, 595, 795);
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillStyle = 'rgba(234, 252, 228, 0.65)';
       ctx.font = '400 18px "Inter", sans-serif';
-      ctx.fillText(`${totalDaysActive} active reading days`, 595, 835);
+      ctx.fillText(`${totalDaysActive} active reading days in ${year}`, 590, 835);
 
-      // 6. Top Book Spotlight Box
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-      ctx.roundRect(80, 900, width - 160, 280, 24);
+      // 6. Standout Title Spotlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.beginPath();
+      ctx.roundRect(90, 900, width - 180, 260, 20);
       ctx.fill();
+      ctx.stroke();
 
-      ctx.fillStyle = '#60A5FA';
-      ctx.font = '600 18px "Inter", sans-serif';
-      ctx.fillText('STANDOUT BOOK OF THE YEAR', 120, 945);
+      ctx.fillStyle = '#10B981';
+      ctx.font = '700 16px "Inter", sans-serif';
+      ctx.fillText('STANDOUT BOOK OF THE YEAR', 130, 945);
 
       if (topBook) {
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '800 30px "Plus Jakarta Sans", sans-serif';
-        const bookTitle = topBook.title.length > 38 ? topBook.title.slice(0, 38) + '...' : topBook.title;
-        ctx.fillText(bookTitle, 120, 995);
+        const titleSnippet = topBook.title.length > 40 ? topBook.title.slice(0, 40) + '...' : topBook.title;
+        ctx.fillText(titleSnippet, 130, 995);
 
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-        ctx.font = '500 22px "Inter", sans-serif';
-        ctx.fillText(`by ${topBook.author}`, 120, 1035);
+        ctx.fillStyle = 'rgba(234, 252, 228, 0.7)';
+        ctx.font = '500 20px "Inter", sans-serif';
+        ctx.fillText(`by ${topBook.author}`, 130, 1035);
 
         ctx.fillStyle = '#FBBF24';
         ctx.font = '700 24px "Inter", sans-serif';
-        ctx.fillText('★'.repeat(topBook.rating || 5), 120, 1075);
+        ctx.fillText('★'.repeat(topBook.rating || 5), 130, 1075);
 
         if (topBook.reviewSnippet) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+          ctx.fillStyle = 'rgba(234, 252, 228, 0.65)';
           ctx.font = 'italic 18px "Inter", sans-serif';
-          ctx.fillText(`"${topBook.reviewSnippet.slice(0, 50)}..."`, 120, 1125);
+          ctx.fillText(`"${topBook.reviewSnippet.slice(0, 55)}..."`, 130, 1120);
         }
       } else {
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '600 22px "Inter", sans-serif';
-        ctx.fillText('Keep logging your reads to spotlight your favorite!', 120, 1000);
+        ctx.fillText('Continue logging your reads to crown your favorite title.', 130, 1020);
       }
 
-      // 7. Footer
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      // 7. Footer Branding
+      ctx.fillStyle = 'rgba(234, 252, 228, 0.4)';
       ctx.font = '500 18px "Inter", sans-serif';
-      ctx.fillText('reader.app • Built for passionate readers', 80, 1260);
+      ctx.fillText(`reader.app   •   ${year} Reading Journey`, 90, 1250);
 
-      // Trigger download
+      // Download
       const imageUri = canvas.toDataURL('image/png');
       const downloadLink = document.createElement('a');
-      downloadLink.download = `Reader_Wrapped_${year}_${userName.replace(/\s+/g, '_')}.png`;
+      downloadLink.download = `Reader_Recap_${year}_${userName.replace(/\s+/g, '_')}.png`;
       downloadLink.href = imageUri;
       downloadLink.click();
     } catch (err) {
@@ -313,11 +322,9 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
     }
   };
 
-  // Copy shareable summary text / image
   const handleCopyShare = async () => {
     try {
-      const shareText = `📚 My Reader Wrapped ${year}!\n\n• Books Read: ${completedCount}/${target} (${percentage}%)\n• Reading Persona: ${persona?.title}\n• Top Genre: ${topGenre}\n• Longest Streak: ${longestStreak} days\n\nTrack your reading at Reader! #ReaderWrapped${year}`;
-      
+      const shareText = `📚 My ${year} Reader Recap!\n\n• Books Read: ${completedCount}/${target} (${percentage}%)\n• Reading Persona: ${persona?.title}\n• Top Genre: ${topGenre}\n• Longest Streak: ${longestStreak} days\n\nTrack your reading at Reader!`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(shareText);
         setCopied(true);
@@ -328,9 +335,8 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
     }
   };
 
-  // Share on Twitter/X
   const handleTweetShare = () => {
-    const tweet = `My ${year} Reader Wrapped is here! 📖✨ I've read ${completedCount} books so far and my reading persona is "${persona?.title}". Top genre: ${topGenre}! #ReaderWrapped${year}`;
+    const tweet = `My ${year} Reader Recap: ${completedCount} books read so far! Reading persona: "${persona?.title}". Top genre: ${topGenre}. 📖✨`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
     window.open(url, '_blank');
   };
@@ -341,8 +347,8 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
         {/* Modal Top Bar */}
         <div className="wrapped-modal-header">
           <div className="wrapped-brand">
-            <Sparkles className="wrapped-sparkle-icon" size={20} />
-            <span>READER WRAPPED <strong>'{String(year).slice(-2)}</strong></span>
+            <Sparkles size={18} className="wrapped-header-icon" />
+            <span>{year} ANNUAL RECAP</span>
           </div>
 
           <div className="wrapped-view-tabs">
@@ -350,7 +356,7 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
               className={`wrapped-tab-btn ${activeTab === 'poster' ? 'active' : ''}`}
               onClick={() => setActiveTab('poster')}
             >
-              Poster Card
+              Recap Card
             </button>
             <button 
               className={`wrapped-tab-btn ${activeTab === 'story' ? 'active' : ''}`}
@@ -361,94 +367,112 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
           </div>
 
           <button className="wrapped-close-btn" onClick={onClose} title="Close">
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Content Body */}
+        {/* Modal Body */}
         <div className="wrapped-modal-body">
           {activeTab === 'poster' ? (
             <div className="wrapped-poster-wrapper">
-              {/* Infographic Poster Card */}
-              <div className="wrapped-poster-card" ref={posterRef}>
-                <div className="poster-ambient-glow-1"></div>
-                <div className="poster-ambient-glow-2"></div>
-
-                <div className="poster-inner">
-                  {/* Card Header */}
-                  <div className="poster-header">
-                    <div>
-                      <div className="poster-tag">READER WRAPPED '{String(year).slice(-2)}</div>
-                      <h3 className="poster-user-name">{userName}</h3>
+              {/* Infographic Poster Card - Full & Uncut */}
+              <div className="wrapped-poster-card">
+                {/* Card Header */}
+                <div className="poster-header">
+                  <div>
+                    <div className="poster-kicker">READER • {year} RECAP</div>
+                    <h3 className="poster-user-name">{userName}</h3>
+                  </div>
+                  {userAvatar ? (
+                    <img 
+                      src={`${import.meta.env.VITE_API_URL}${userAvatar}`} 
+                      alt={userName} 
+                      className="poster-avatar"
+                    />
+                  ) : (
+                    <div className="poster-avatar-fallback">
+                      {userName.charAt(0).toUpperCase()}
                     </div>
-                    {userAvatar ? (
-                      <img 
-                        src={`${import.meta.env.VITE_API_URL}${userAvatar}`} 
-                        alt={userName} 
-                        className="poster-avatar"
-                      />
+                  )}
+                </div>
+
+                {/* 2-Column Body Content */}
+                <div className="poster-columns-grid">
+                  {/* Left Column: Big Stats & Consistency */}
+                  <div className="poster-col-left">
+                    <div className="poster-hero-metric">
+                      <div className="poster-label">BOOKS COMPLETED</div>
+                      <div className="poster-big-count">{completedCount}</div>
+                      <div className="poster-metric-meta">
+                        <span className="poster-pill highlight">{percentage}% of {target} goal</span>
+                        <span className="poster-pill">~{estimatedPages.toLocaleString()} pages</span>
+                      </div>
+                    </div>
+
+                    <div className="poster-grid-stats">
+                      <div className="poster-stat-card">
+                        <div className="stat-card-label">
+                          <Bookmark size={13} />
+                          <span>TOP GENRE</span>
+                        </div>
+                        <h5 className="stat-card-value">{topGenre}</h5>
+                        <span className="stat-card-sub">Most explored</span>
+                      </div>
+
+                      <div className="poster-stat-card">
+                        <div className="stat-card-label">
+                          <Flame size={13} />
+                          <span>LONGEST STREAK</span>
+                        </div>
+                        <h5 className="stat-card-value text-amber">{longestStreak} {longestStreak === 1 ? 'Day' : 'Days'}</h5>
+                        <span className="stat-card-sub">{totalDaysActive} active days</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Persona & Standout Title */}
+                  <div className="poster-col-right">
+                    <div className="poster-persona-box">
+                      <div className="poster-persona-badge">{persona?.badge || 'Reading Persona'}</div>
+                      <h4 className="poster-persona-title">{persona?.title}</h4>
+                      <p className="poster-persona-desc">{persona?.description}</p>
+                    </div>
+
+                    {topBook ? (
+                      <div className="poster-topbook-row">
+                        <img 
+                          src={topBook.coverImage ? topBook.coverImage.replace('-S.jpg', '-L.jpg') : FALLBACK_IMAGE} 
+                          alt={topBook.title}
+                          className="poster-book-thumb"
+                          onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
+                        />
+                        <div className="poster-book-meta">
+                          <span className="poster-book-tag">STANDOUT TITLE</span>
+                          <div className="poster-book-title">{topBook.title}</div>
+                          <div className="poster-book-author">by {topBook.author}</div>
+                          <div className="poster-book-stars">{'★'.repeat(topBook.rating || 5)}</div>
+                          {topBook.reviewSnippet && (
+                            <div className="poster-book-review">"{topBook.reviewSnippet}"</div>
+                          )}
+                        </div>
+                      </div>
                     ) : (
-                      <div className="poster-avatar-fallback">
-                        {userName.charAt(0).toUpperCase()}
+                      <div className="poster-topbook-row empty">
+                        <BookOpen size={22} style={{ opacity: 0.4, color: '#CCFBC0' }} />
+                        <div className="poster-book-meta">
+                          <span className="poster-book-tag">READING ODYSSEY</span>
+                          <div className="poster-book-title">A New Chapter in {year}</div>
+                          <div className="poster-book-author">Log your completed reads to crown your favorite.</div>
+                        </div>
                       </div>
                     )}
                   </div>
+                </div>
 
-                  {/* Big Hero Number */}
-                  <div className="poster-hero-metric">
-                    <span className="poster-subtext">BOOKS COMPLETED</span>
-                    <div className="poster-big-count">{completedCount}</div>
-                    <div className="poster-pills-row">
-                      <span className="poster-pill highlight">{percentage}% of {target} goal</span>
-                      <span className="poster-pill">~{estimatedPages.toLocaleString()} pages</span>
-                    </div>
-                  </div>
-
-                  {/* Persona Feature */}
-                  <div className="poster-persona-box">
-                    <div className="poster-persona-badge">{persona?.badge}</div>
-                    <h4 className="poster-persona-title">{persona?.title}</h4>
-                    <p className="poster-persona-desc">{persona?.description}</p>
-                  </div>
-
-                  {/* Two Column Highlights */}
-                  <div className="poster-grid-stats">
-                    <div className="poster-stat-card">
-                      <span className="stat-card-label">TOP GENRE</span>
-                      <h5 className="stat-card-value text-emerald">{topGenre}</h5>
-                      <span className="stat-card-sub">Your favorite territory</span>
-                    </div>
-
-                    <div className="poster-stat-card">
-                      <span className="stat-card-label">LONGEST STREAK</span>
-                      <h5 className="stat-card-value text-amber">{longestStreak} Days</h5>
-                      <span className="stat-card-sub">{totalDaysActive} active days</span>
-                    </div>
-                  </div>
-
-                  {/* Standout Book */}
-                  {topBook && (
-                    <div className="poster-topbook-row">
-                      <img 
-                        src={topBook.coverImage ? topBook.coverImage.replace('-S.jpg', '-L.jpg') : FALLBACK_IMAGE} 
-                        alt={topBook.title}
-                        className="poster-book-thumb"
-                        onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
-                      />
-                      <div className="poster-book-meta">
-                        <span className="poster-book-tag">TOP RATED READ</span>
-                        <div className="poster-book-title">{topBook.title}</div>
-                        <div className="poster-book-author">by {topBook.author}</div>
-                        <div className="poster-book-stars">{'★'.repeat(topBook.rating || 5)}</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Poster Footer */}
-                  <div className="poster-footer">
-                    <span>reader.app</span>
-                    <span>#ReaderWrapped{year}</span>
-                  </div>
+                {/* Card Footer */}
+                <div className="poster-footer">
+                  <span>reader.app</span>
+                  <span>{year} Reading Journey</span>
                 </div>
               </div>
             </div>
@@ -481,7 +505,7 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
                     disabled={storyIndex === 0}
                     onClick={() => setStoryIndex(prev => Math.max(0, prev - 1))}
                   >
-                    <ChevronLeft size={22} />
+                    <ChevronLeft size={18} /> Previous
                   </button>
 
                   <button 
@@ -494,7 +518,8 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
                       }
                     }}
                   >
-                    {storyIndex < storySlides.length - 1 ? <ChevronRight size={22} /> : 'See Poster'}
+                    {storyIndex < storySlides.length - 1 ? 'Next' : 'View Full Card'}
+                    <ChevronRight size={18} />
                   </button>
                 </div>
               </div>
@@ -509,23 +534,23 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
             onClick={handleDownloadImage}
             disabled={downloading}
           >
-            <Download size={18} />
-            {downloading ? 'Generating PNG...' : 'Download Infographic (PNG)'}
+            <Download size={16} />
+            {downloading ? 'Preparing PNG...' : 'Download Infographic (PNG)'}
           </button>
 
           <button 
             className="wrapped-btn-secondary" 
             onClick={handleCopyShare}
           >
-            {copied ? <Check size={18} color="#34D399" /> : <Copy size={18} />}
-            {copied ? 'Copied Stats!' : 'Copy Summary'}
+            {copied ? <Check size={16} color="#34D399" /> : <Copy size={16} />}
+            {copied ? 'Copied!' : 'Copy Summary'}
           </button>
 
           <button 
-            className="wrapped-btn-secondary tweet-btn" 
+            className="wrapped-btn-secondary" 
             onClick={handleTweetShare}
           >
-            <Share2 size={18} />
+            <Share2 size={16} />
             Share on X
           </button>
         </div>

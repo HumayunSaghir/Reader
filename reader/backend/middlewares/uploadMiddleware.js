@@ -21,14 +21,15 @@ const storage = multer.diskStorage({
 });
 
 function checkFileType(file, cb) {
-  const filetypes = /jpg|jpeg|png/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
+  // Support all standard image extensions: SVG, PNG, JPG, JPEG, WEBP, GIF, AVIF, BMP, ICO
+  const allowedExtensions = /\.(jpg|jpeg|png|svg|webp|gif|avif|bmp|ico)$/i;
+  const isExtensionValid = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+  const isImageMime = file.mimetype && (file.mimetype.startsWith('image/') || file.mimetype === 'image/svg+xml');
 
-  if (extname && mimetype) {
+  if (isExtensionValid || isImageMime) {
     return cb(null, true);
   } else {
-    cb('Images only!');
+    cb(new Error('Only image files (SVG, PNG, JPG, WEBP, GIF, AVIF) are allowed!'));
   }
 }
 

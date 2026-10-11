@@ -1,14 +1,14 @@
-/* Yearly Reading Challenge Widget Styles */
+/* Yearly Reading Challenge Widget - Professional Clean Styles */
 .reading-challenge-container {
-  padding: 1.75rem;
+  padding: 1.75rem 2rem;
   margin-bottom: 2rem;
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--card-bg-2, #0D1C13);
   border: 1px solid var(--border-color, #1A2E20);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
-  gap: 1.4rem;
+  gap: 1.5rem;
 }
 
 /* Header */
@@ -26,49 +26,46 @@
   gap: 0.85rem;
 }
 
-.challenge-trophy-badge {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(204, 251, 192, 0.1) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.35);
+.challenge-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(204, 251, 192, 0.08);
+  border: 1px solid rgba(204, 251, 192, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-}
-
-.trophy-icon {
   color: #CCFBC0;
 }
 
-.challenge-tagline {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+.challenge-kicker {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   color: #10B981;
 }
 
 .challenge-title {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   font-family: var(--font-heading);
   color: var(--text-main);
+  font-weight: 700;
 }
 
 .challenge-header-actions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
 }
 
 .challenge-year-select {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-color);
   color: var(--text-main);
-  padding: 0.45rem 0.8rem;
-  border-radius: 10px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -76,11 +73,11 @@
 }
 
 .challenge-btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   padding: 0.45rem 0.85rem;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -91,64 +88,48 @@
 }
 
 .challenge-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-/* Spotify Wrapped Button */
-.challenge-btn-wrapped {
-  background: linear-gradient(135deg, #10B981 0%, #8B5CF6 50%, #EC4899 100%);
-  background-size: 200% 200%;
-  animation: gradientShift 4s ease infinite;
-  color: #FFFFFF;
-  border: none;
-  padding: 0.48rem 1rem;
-  border-radius: 10px;
+/* Professional Annual Recap CTA */
+.challenge-btn-recap {
+  background: #CCFBC0;
+  color: #09130D;
+  border: 1px solid #CCFBC0;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
   transition: all 0.2s;
 }
 
-.challenge-btn-wrapped:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.sparkle-anim {
-  animation: spinSlow 6s linear infinite;
-}
-
-@keyframes spinSlow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.challenge-btn-recap:hover {
+  background: #A3EA8C;
+  border-color: #A3EA8C;
+  transform: translateY(-1px);
 }
 
 /* Feedback message */
 .challenge-feedback-msg {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   color: #6EE7B7;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
   border-radius: 8px;
   font-size: 0.85rem;
+  font-weight: 500;
 }
 
 /* Goal editor box */
 .challenge-edit-box {
   background: rgba(0, 0, 0, 0.25);
-  border: 1px dashed rgba(16, 185, 129, 0.4);
-  border-radius: 14px;
-  padding: 1rem 1.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.9rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -172,7 +153,7 @@
 }
 
 .quick-adjust-btn {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   padding: 0.35rem 0.65rem;
@@ -187,11 +168,11 @@
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid var(--border-color);
   color: #CCFBC0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   text-align: center;
   padding: 0.35rem;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .books-unit {
@@ -201,8 +182,11 @@
 
 .edit-save-btn {
   margin-left: 0.5rem;
-  padding: 0.4rem 0.9rem;
+  padding: 0.35rem 0.85rem;
   font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 /* Loading */
@@ -212,7 +196,13 @@
   justify-content: center;
 }
 
-/* Metric Row */
+/* Progress Section */
+.challenge-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
 .challenge-metric-row {
   display: flex;
   align-items: baseline;
@@ -229,21 +219,21 @@
 
 .metric-completed {
   font-family: var(--font-heading);
-  font-size: 2.5rem;
-  font-weight: 900;
+  font-size: 2.6rem;
+  font-weight: 800;
   color: #CCFBC0;
   line-height: 1;
 }
 
 .metric-divider {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   color: var(--text-muted);
   font-weight: 300;
 }
 
 .metric-target {
   font-family: var(--font-heading);
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-main);
 }
@@ -255,10 +245,10 @@
 }
 
 .metric-pct {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #10B981;
-  margin-left: 0.4rem;
+  margin-left: 0.3rem;
 }
 
 /* Pace badge */
@@ -266,122 +256,101 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
   border-radius: 999px;
 }
 
 .pace-ahead {
-  background: rgba(16, 185, 129, 0.18);
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   color: #34D399;
 }
 
 .pace-on_track {
-  background: rgba(6, 182, 212, 0.18);
-  border: 1px solid rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.25);
   color: #22D3EE;
 }
 
 .pace-behind {
-  background: rgba(245, 158, 11, 0.18);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.25);
   color: #FBBF24;
 }
 
 .pace-completed {
-  background: rgba(234, 179, 8, 0.2);
-  border: 1px solid rgba(234, 179, 8, 0.5);
-  color: #FDE047;
+  background: rgba(204, 251, 192, 0.15);
+  border: 1px solid rgba(204, 251, 192, 0.3);
+  color: #CCFBC0;
 }
 
-/* Progress Bar */
-.challenge-bar-container {
-  position: relative;
-  margin: 0.2rem 0 1.2rem 0;
-}
-
+/* Precision Track */
 .challenge-bar-track {
   width: 100%;
-  height: 14px;
-  background: rgba(255, 255, 255, 0.08);
+  height: 9px;
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 999px;
-  overflow: hidden;
   position: relative;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
 .challenge-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #059669 0%, #10B981 50%, #A3EA8C 100%);
+  background: linear-gradient(90deg, #059669 0%, #10B981 100%);
   border-radius: 999px;
-  position: relative;
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.5s ease;
 }
 
-.bar-shimmer {
+.bar-notch {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
-  animation: barShimmer 2.5s infinite;
-}
-
-@keyframes barShimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.bar-milestones {
-  position: relative;
-  height: 18px;
-  margin-top: 4px;
-}
-
-.milestone-pip {
-  position: absolute;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.15);
   transform: translateX(-50%);
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  user-select: none;
 }
 
-.milestone-pip.reached {
-  color: #10B981;
-  font-weight: 700;
+/* Structured 4-Metric Grid */
+.challenge-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
 }
 
-/* Chips / Pills */
-.challenge-pills-row {
+.challenge-stat-cell {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
   display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
-.challenge-stat-chip {
+.stat-cell-header {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-color);
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  color: var(--text-main);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.text-purple { color: #C084FC; }
-.text-amber { color: #FBBF24; }
-.text-emerald { color: #34D399; }
+.stat-cell-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  color: var(--text-main);
+}
 
 /* Completed Books Carousel */
 .challenge-books-section {
   border-top: 1px solid var(--border-color);
-  padding-top: 1rem;
+  padding-top: 1.1rem;
 }
 
 .challenge-books-header {
@@ -392,22 +361,22 @@
 }
 
 .section-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--text-muted);
+  letter-spacing: 0.04em;
 }
 
 .open-wrapped-link {
   background: none;
   border: none;
   color: #10B981;
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
   transition: color 0.2s;
 }
 
@@ -419,12 +388,12 @@
   display: flex;
   gap: 0.85rem;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
   scrollbar-width: thin;
 }
 
 .challenge-book-card {
-  flex: 0 0 76px;
+  flex: 0 0 78px;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -434,16 +403,16 @@
 }
 
 .challenge-book-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
 }
 
 .book-card-cover-wrap {
   position: relative;
-  width: 76px;
-  height: 110px;
+  width: 78px;
+  height: 112px;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   background: #000;
 }
 
@@ -457,8 +426,8 @@
   position: absolute;
   bottom: 4px;
   right: 4px;
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   background: #10B981;
   color: #060B08;
@@ -481,16 +450,22 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1.25rem;
+  padding: 1.1rem;
   background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
+  border-radius: 10px;
   color: var(--text-muted);
   font-size: 0.85rem;
 }
 
+@media (max-width: 800px) {
+  .challenge-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 600px) {
   .reading-challenge-container {
-    padding: 1.25rem;
+    padding: 1.25rem 1rem;
   }
   .challenge-header {
     flex-direction: column;
@@ -501,6 +476,9 @@
     justify-content: space-between;
   }
   .metric-completed {
-    font-size: 2rem;
+    font-size: 2.1rem;
+  }
+  .challenge-metrics-grid {
+    grid-template-columns: 1fr;
   }
 }

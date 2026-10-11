@@ -131,11 +131,14 @@ const Profile = () => {
       };
       const { data } = await axios.put(`${import.meta.env.VITE_API_URL}/api/auth/profile/photo`, formData, config);
       updateUser(data);
+      showToast('Profile photo updated successfully!');
     } catch (error) {
       console.error(error);
-      alert('Failed to upload photo');
+      const msg = error.response?.data?.message || 'Failed to upload photo';
+      showToast(msg);
     } finally {
       setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 

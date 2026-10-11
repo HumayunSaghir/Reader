@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
   Trophy, 
@@ -11,10 +11,10 @@ import {
   Flame, 
   BookOpen, 
   Edit3,
-  Calendar
+  Compass,
+  Bookmark
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext';
 import ReaderWrappedModal from './ReaderWrappedModal';
 import { FALLBACK_IMAGE } from '../assets/fallbackImage';
 import './ReadingChallenge.css';
@@ -72,7 +72,7 @@ const ReadingChallenge = ({ user }) => {
       );
       setChallengeData(data);
       setIsEditingGoal(false);
-      setMessage(`Goal set to ${targetNum} books!`);
+      setMessage(`Reading goal updated to ${targetNum} books.`);
       setTimeout(() => setMessage(null), 3000);
     } catch (err) {
       console.error('Failed to save goal:', err);
@@ -98,11 +98,11 @@ const ReadingChallenge = ({ user }) => {
       {/* Header */}
       <div className="challenge-header">
         <div className="challenge-title-group">
-          <div className="challenge-trophy-badge">
-            <Trophy size={22} className="trophy-icon" />
+          <div className="challenge-icon-box">
+            <Trophy size={20} />
           </div>
           <div>
-            <div className="challenge-tagline">ANNUAL MILESTONE</div>
+            <div className="challenge-kicker">ANNUAL READING GOAL</div>
             <h3 className="challenge-title">{selectedYear} Reading Challenge</h3>
           </div>
         </div>
@@ -125,23 +125,23 @@ const ReadingChallenge = ({ user }) => {
             onClick={() => setIsEditingGoal(!isEditingGoal)}
             title="Edit Target"
           >
-            <Edit3 size={15} />
+            <Edit3 size={14} />
             <span>{isEditingGoal ? 'Cancel' : 'Edit Goal'}</span>
           </button>
 
-          {/* View Spotify Wrapped Button */}
+          {/* View Annual Recap Button */}
           <button 
-            className="challenge-btn-wrapped"
+            className="challenge-btn-recap"
             onClick={() => setShowWrappedModal(true)}
-            title="View Spotify Wrapped-style Infographic"
+            title="View Year Recap Infographic"
           >
-            <Sparkles size={16} className="sparkle-anim" />
-            <span>View {selectedYear} Wrapped</span>
+            <Sparkles size={15} />
+            <span>{selectedYear} Recap</span>
           </button>
         </div>
       </div>
 
-      {/* Success / Info Feedback */}
+      {/* Feedback message */}
       {message && (
         <div className="challenge-feedback-msg animate-fade-in">
           {message}
@@ -153,7 +153,7 @@ const ReadingChallenge = ({ user }) => {
         <form onSubmit={handleSaveGoal} className="challenge-edit-box animate-fade-in">
           <div className="edit-box-label">
             <Target size={16} />
-            <span>Set your reading target for {selectedYear}:</span>
+            <span>Set your target for {selectedYear}:</span>
           </div>
           <div className="edit-box-controls">
             <button 
@@ -185,8 +185,8 @@ const ReadingChallenge = ({ user }) => {
               className="btn-primary edit-save-btn"
               disabled={savingGoal}
             >
-              <Check size={16} />
-              {savingGoal ? 'Saving...' : 'Save Goal'}
+              <Check size={15} />
+              {savingGoal ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
@@ -198,81 +198,92 @@ const ReadingChallenge = ({ user }) => {
         </div>
       ) : (
         <>
-          {/* Main Metric & Pace */}
-          <div className="challenge-metric-row">
-            <div className="metric-counts">
-              <span className="metric-completed">{completedCount}</span>
-              <span className="metric-divider">/</span>
-              <span className="metric-target">{target}</span>
-              <span className="metric-label">books read</span>
-              <span className="metric-pct">({percentage}%)</span>
+          {/* Main Progress Row */}
+          <div className="challenge-progress-section">
+            <div className="challenge-metric-row">
+              <div className="metric-counts">
+                <span className="metric-completed">{completedCount}</span>
+                <span className="metric-divider">/</span>
+                <span className="metric-target">{target}</span>
+                <span className="metric-label">books completed</span>
+                <span className="metric-pct">({percentage}%)</span>
+              </div>
+
+              {/* Pace status pill */}
+              <div className={`pace-badge pace-${paceStatus}`}>
+                {paceStatus === 'ahead' && <TrendingUp size={14} />}
+                {paceStatus === 'behind' && <TrendingDown size={14} />}
+                {paceStatus === 'completed' && <Trophy size={14} />}
+                {paceStatus === 'on_track' && <Check size={14} />}
+                <span>{paceMessage}</span>
+              </div>
             </div>
 
-            {/* Pace status pill */}
-            <div className={`pace-badge pace-${paceStatus}`}>
-              {paceStatus === 'ahead' && <TrendingUp size={15} />}
-              {paceStatus === 'behind' && <TrendingDown size={15} />}
-              {paceStatus === 'completed' && <Trophy size={15} />}
-              {paceStatus === 'on_track' && <Check size={15} />}
-              <span>{paceMessage}</span>
-            </div>
-          </div>
-
-          {/* Progress Bar with Milestone Markers */}
-          <div className="challenge-bar-container">
+            {/* Precision Progress Bar */}
             <div className="challenge-bar-track">
               <div 
                 className="challenge-bar-fill" 
-                style={{ width: `${Math.min(100, Math.max(3, percentage))}%` }}
-              >
-                <div className="bar-shimmer"></div>
-              </div>
-            </div>
-
-            {/* Milestones markers */}
-            <div className="bar-milestones">
-              <span className={`milestone-pip ${percentage >= 25 ? 'reached' : ''}`} style={{ left: '25%' }}>25%</span>
-              <span className={`milestone-pip ${percentage >= 50 ? 'reached' : ''}`} style={{ left: '50%' }}>50%</span>
-              <span className={`milestone-pip ${percentage >= 75 ? 'reached' : ''}`} style={{ left: '75%' }}>75%</span>
-              <span className={`milestone-pip ${percentage >= 100 ? 'reached' : ''}`} style={{ left: '100%' }}>100%</span>
+                style={{ width: `${Math.min(100, Math.max(completedCount > 0 ? 3 : 0, percentage))}%` }}
+              ></div>
+              {/* Subtle Hairline Dividers at 25%, 50%, 75% */}
+              <span className="bar-notch" style={{ left: '25%' }}></span>
+              <span className="bar-notch" style={{ left: '50%' }}></span>
+              <span className="bar-notch" style={{ left: '75%' }}></span>
             </div>
           </div>
 
-          {/* Highlights Mini Pills */}
-          <div className="challenge-pills-row">
-            {wrapped?.persona && (
-              <div className="challenge-stat-chip">
-                <Sparkles size={14} className="text-purple" />
-                <span>Persona: <strong>{wrapped.persona.title}</strong></span>
+          {/* Structured 4-Metric Grid */}
+          <div className="challenge-metrics-grid">
+            <div className="challenge-stat-cell">
+              <div className="stat-cell-header">
+                <Target size={14} />
+                <span>Target Goal</span>
               </div>
-            )}
-            <div className="challenge-stat-chip">
-              <Flame size={14} className="text-amber" />
-              <span>Streak: <strong>{wrapped?.longestStreak || 0} days</strong></span>
+              <div className="stat-cell-value">{target} Books</div>
             </div>
-            <div className="challenge-stat-chip">
-              <BookOpen size={14} className="text-emerald" />
-              <span>Est. Pages: <strong>~{(wrapped?.estimatedPages || 0).toLocaleString()}</strong></span>
-            </div>
-            {wrapped?.topGenre && (
-              <div className="challenge-stat-chip">
-                <span>Top Genre: <strong>{wrapped.topGenre}</strong></span>
+
+            <div className="challenge-stat-cell">
+              <div className="stat-cell-header">
+                <Flame size={14} />
+                <span>Longest Streak</span>
               </div>
-            )}
+              <div className="stat-cell-value">
+                {wrapped?.longestStreak || 0} {wrapped?.longestStreak === 1 ? 'Day' : 'Days'}
+              </div>
+            </div>
+
+            <div className="challenge-stat-cell">
+              <div className="stat-cell-header">
+                <BookOpen size={14} />
+                <span>Est. Pages</span>
+              </div>
+              <div className="stat-cell-value">
+                ~{(wrapped?.estimatedPages || 0).toLocaleString()}
+              </div>
+            </div>
+
+            <div className="challenge-stat-cell">
+              <div className="stat-cell-header">
+                <Bookmark size={14} />
+                <span>Top Genre</span>
+              </div>
+              <div className="stat-cell-value">
+                {wrapped?.topGenre || 'Varied'}
+              </div>
+            </div>
           </div>
 
-          {/* Recently Completed Books Row */}
+          {/* Finished Books in selectedYear */}
           <div className="challenge-books-section">
             <div className="challenge-books-header">
-              <span className="section-label">BOOKS FINISHED IN {selectedYear} ({readBooks.length})</span>
-              {readBooks.length > 0 && (
-                <button 
-                  className="open-wrapped-link"
-                  onClick={() => setShowWrappedModal(true)}
-                >
-                  Generate Infographic <ChevronRight size={14} />
-                </button>
-              )}
+              <span className="section-label">Books Read in {selectedYear} ({readBooks.length})</span>
+              <button 
+                className="open-wrapped-link"
+                onClick={() => setShowWrappedModal(true)}
+              >
+                <span>View Full Year Recap</span>
+                <ChevronRight size={14} />
+              </button>
             </div>
 
             {readBooks.length > 0 ? (
@@ -290,7 +301,7 @@ const ReadingChallenge = ({ user }) => {
                         alt={book.title}
                         onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
                       />
-                      <span className="book-check-badge"><Check size={12} /></span>
+                      <span className="book-check-badge"><Check size={11} /></span>
                     </div>
                     <span className="challenge-book-title">{book.title}</span>
                   </Link>
@@ -298,15 +309,15 @@ const ReadingChallenge = ({ user }) => {
               </div>
             ) : (
               <div className="challenge-empty-state">
-                <BookOpen size={24} style={{ opacity: 0.4 }} />
-                <p>No books completed yet in {selectedYear}. Set books to "Read" to track your progress!</p>
+                <BookOpen size={20} style={{ opacity: 0.4 }} />
+                <span>No books marked as "Read" for {selectedYear} yet. Mark books finished to track your progress!</span>
               </div>
             )}
           </div>
         </>
       )}
 
-      {/* Shareable Spotify Wrapped Modal */}
+      {/* Shareable Year Recap Modal */}
       {showWrappedModal && wrapped && (
         <ReaderWrappedModal 
           wrappedData={wrapped}
