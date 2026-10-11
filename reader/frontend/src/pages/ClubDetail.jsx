@@ -18,7 +18,8 @@ const ClubDetail = () => {
   
   const [revealedSpoilers, setRevealedSpoilers] = useState(new Set());
   
-  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const prevMsgLengthRef = useRef(0);
 
   useEffect(() => {
     fetchClub();
@@ -27,12 +28,14 @@ const ClubDetail = () => {
   }, [id]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [club?.messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    const currentLength = club?.messages?.length || 0;
+    if (currentLength > prevMsgLengthRef.current) {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+      prevMsgLengthRef.current = currentLength;
+    }
+  }, [club?.messages?.length]);
 
   const fetchClub = async () => {
     try {
@@ -87,6 +90,11 @@ const ClubDetail = () => {
       setClub({ ...club, messages: [...club.messages, newMessage] });
       setChatInput('');
       setIsSpoiler(false);
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+      }, 50);
     } catch (error) {
       console.error(error);
     }
@@ -233,7 +241,7 @@ const ClubDetail = () => {
         <div className="club-chat-panel glass-panel">
           <h3 style={{ marginTop: 0, borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Discussion Room</h3>
           
-          <div className="chat-messages">
+          <div className="chat-messages" ref={chatContainerRef}>
             {club.messages.length === 0 && (
               <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem' }}>
                 No messages yet. Be the first to start the discussion!
@@ -273,7 +281,6 @@ const ClubDetail = () => {
                 </div>
               );
             })}
-            <div ref={messagesEndRef} />
           </div>
 
           {isMember ? (

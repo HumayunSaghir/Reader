@@ -429,10 +429,10 @@
 .chapter-checklist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 0.5rem;
+  gap: 0.6rem;
   max-height: 180px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 8px 6px;
 }
 
 /* Custom Scrollbar for Chapters Grid */
@@ -466,18 +466,23 @@
   cursor: pointer;
   user-select: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
 .chapter-pill-item:hover {
-  border-color: rgba(16, 185, 129, 0.6);
-  background: rgba(16, 185, 129, 0.05);
-  transform: translateY(-1px);
+  border-color: #10B981;
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35);
 }
 
 .chapter-pill-item.checked {
   background: rgba(16, 185, 129, 0.12);
   border-color: #10B981;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.chapter-pill-item.checked:hover {
+  background: rgba(16, 185, 129, 0.18);
+  box-shadow: 0 0 0 1px #10B981;
 }
 
 /* Custom Checkbox Indicator */
