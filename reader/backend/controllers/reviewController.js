@@ -1,5 +1,6 @@
 const Review = require('../models/Review');
 const Book = require('../models/Book');
+const Activity = require('../models/Activity');
 
 const addReview = async (req, res) => {
   const { rating, reviewText } = req.body;
@@ -20,6 +21,14 @@ const addReview = async (req, res) => {
     await Book.findByIdAndUpdate(bookId, { 
       averageRating: avgRating,
       ratingsCount: reviews.length
+    });
+
+    await Activity.create({
+      user: req.user._id,
+      book: bookId,
+      type: 'review',
+      rating,
+      reviewText
     });
 
     res.status(201).json(review);

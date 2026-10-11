@@ -7,6 +7,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import BookDetail from './pages/BookDetail';
 import Profile from './pages/Profile';
+import Clubs from './pages/Clubs';
+import ClubDetail from './pages/ClubDetail';
 
 function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -34,6 +36,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/books/:id" element={<BookDetail />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/clubs" element={<Clubs />} />
+            <Route path="/clubs/:id" element={<ClubDetail />} />
           </Routes>
         </main>
       </div>

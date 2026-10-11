@@ -21,6 +21,8 @@ connectDB();
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/books', require('./routes/bookRoutes'));
 app.use('/api/books/:id/reviews', require('./routes/reviewRoutes'));
+app.use('/api/activities', require('./routes/activityRoutes'));
+app.use('/api/clubs', require('./routes/bookClubRoutes'));
 
 const PORT = process.env.PORT || 5000;
 

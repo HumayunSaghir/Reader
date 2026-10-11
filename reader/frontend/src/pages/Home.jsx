@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import BookCard from '../components/BookCard';
+import ActivityFeed from '../components/ActivityFeed';
 import './Home.css';
 
 const heroContentOptions = [
@@ -27,6 +28,7 @@ const heroContentOptions = [
 ];
 
 const Home = () => {
+  const [viewMode, setViewMode] = useState(() => sessionStorage.getItem('homeViewMode') || 'discover');
   const [activeNiche, setActiveNiche] = useState(() => sessionStorage.getItem('homeNiche') || 'All');
   const [page, setPage] = useState(() => parseInt(sessionStorage.getItem('homePage')) || 1);
   const [books, setBooks] = useState(() => {
@@ -46,11 +48,12 @@ const Home = () => {
   const textColors = ['var(--text-main)', 'var(--text-main)', 'var(--text-main)', 'var(--text-main)'];
 
   useEffect(() => {
+    sessionStorage.setItem('homeViewMode', viewMode);
     sessionStorage.setItem('homeNiche', activeNiche);
     sessionStorage.setItem('homePage', page.toString());
     sessionStorage.setItem('homeBooks', JSON.stringify(books));
     sessionStorage.setItem('homeHasMore', hasMore.toString());
-  }, [activeNiche, page, books, hasMore]);
+  }, [viewMode, activeNiche, page, books, hasMore]);
 
   const handleNicheChange = (niche) => {
     if (niche === activeNiche) return;
@@ -112,7 +115,38 @@ const Home = () => {
         <p className="hero-subtext">{heroContent.subtext}</p>
       </div>
 
-      <div className="niches-container">
+      <div className="view-toggle" style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '30px', display: 'flex', gap: '0.5rem', border: '1px solid var(--border-color)' }}>
+          <button 
+            className={`btn-secondary ${viewMode === 'discover' ? 'active-shelf' : ''}`}
+            onClick={() => setViewMode('discover')}
+            style={{ 
+              background: viewMode === 'discover' ? 'var(--text-main)' : 'transparent',
+              color: viewMode === 'discover' ? 'var(--bg-app)' : 'var(--text-main)',
+              border: 'none', borderRadius: '20px', padding: '0.5rem 1.5rem', fontWeight: 'bold'
+            }}
+          >
+            Discover Books
+          </button>
+          <button 
+            className={`btn-secondary ${viewMode === 'community' ? 'active-shelf' : ''}`}
+            onClick={() => setViewMode('community')}
+            style={{ 
+              background: viewMode === 'community' ? 'var(--text-main)' : 'transparent',
+              color: viewMode === 'community' ? 'var(--bg-app)' : 'var(--text-main)',
+              border: 'none', borderRadius: '20px', padding: '0.5rem 1.5rem', fontWeight: 'bold'
+            }}
+          >
+            Community Feed
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'community' ? (
+        <ActivityFeed />
+      ) : (
+        <>
+          <div className="niches-container">
         {niches.map(niche => (
           <button 
             key={niche} 
@@ -162,6 +196,8 @@ const Home = () => {
               Next Page
             </button>
           </div>
+        </>
+      )}
         </>
       )}
     </div>

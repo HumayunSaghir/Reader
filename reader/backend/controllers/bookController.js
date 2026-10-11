@@ -1,5 +1,6 @@
 const Book = require('../models/Book');
 const Shelf = require('../models/Shelf');
+const Activity = require('../models/Activity');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const fetchAndSaveFromOpenLibrary = async (query, maxResults = 10, page = 1) => {
@@ -70,11 +71,55 @@ const liveSearch = async (req, res) => {
   try {
     const { query } = req.query;
     if (!query) return res.json([]);
-    const regex = new RegExp(query, 'i');
-    const books = await Book.find({
+    const cleanQuery = query.trim();
+    if (!cleanQuery) return res.json([]);
+
+    const regex = new RegExp(cleanQuery, 'i');
+    let books = await Book.find({
       $or: [{ title: regex }, { author: regex }]
-    }).limit(6);
-    res.json(books);
+    }).limit(10);
+
+    // If fewer than 4 books found and query is >= 3 chars, fetch from Open Library
+    if (books.length < 4 && cleanQuery.length >= 3) {
+      try {
+        const externalBooks = await fetchAndSaveFromOpenLibrary(cleanQuery, 6);
+        const existingIds = new Set(books.map(b => b._id.toString()));
+        for (const ext of externalBooks) {
+          if (!existingIds.has(ext._id.toString())) {
+            books.push(ext);
+            existingIds.add(ext._id.toString());
+          }
+        }
+      } catch (e) {
+        // Ignore external fetch error
+      }
+    }
+
+    // Sort to prioritize titles starting with or containing query
+    const lowerQ = cleanQuery.toLowerCase();
+    books.sort((a, b) => {
+      const aTitle = (a.title || '').toLowerCase();
+      const bTitle = (b.title || '').toLowerCase();
+      
+      const aStarts = aTitle.startsWith(lowerQ);
+      const bStarts = bTitle.startsWith(lowerQ);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+
+      const aWord = aTitle.split(/\s+/).some(w => w.startsWith(lowerQ));
+      const bWord = bTitle.split(/\s+/).some(w => w.startsWith(lowerQ));
+      if (aWord && !bWord) return -1;
+      if (!aWord && bWord) return 1;
+
+      const aIncludes = aTitle.includes(lowerQ);
+      const bIncludes = bTitle.includes(lowerQ);
+      if (aIncludes && !bIncludes) return -1;
+      if (!aIncludes && bIncludes) return 1;
+
+      return 0;
+    });
+
+    res.json(books.slice(0, 6));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -166,13 +211,19 @@ const updateShelf = async (req, res) => {
     }
     
     if (status !== undefined) {
-      shelf.status = status;
+      if (shelf.status !== status) {
+        shelf.status = status;
+        if (status) {
+          await Activity.create({ user: userId, book: bookId, type: 'shelf_status', status });
+        }
+      }
     }
     
     if (customShelf) {
       if (action === 'add') {
         if (!shelf.customShelves.includes(customShelf)) {
           shelf.customShelves.push(customShelf);
+          await Activity.create({ user: userId, book: bookId, type: 'shelf_custom', customShelf });
         }
       } else if (action === 'remove') {
         shelf.customShelves = shelf.customShelves.filter(s => s !== customShelf);

@@ -75,8 +75,8 @@ const Navbar = ({ toggleTheme, theme }) => {
           {!isAuthPage && (
             <div className="nav-center-links">
               <Link to="/" className="nav-link" onClick={() => setMenuOpen(false)}>Home</Link>
+              <Link to="/clubs" className="nav-link" onClick={() => setMenuOpen(false)}>Book Clubs</Link>
               {user && <Link to="/profile" className="nav-link" onClick={() => setMenuOpen(false)}>My Books</Link>}
-              <Link to="/" className="nav-link" onClick={() => setMenuOpen(false)}>Discover</Link>
             </div>
           )}
 

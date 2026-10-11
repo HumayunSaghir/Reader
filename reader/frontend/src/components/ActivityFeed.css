@@ -1,0 +1,125 @@
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.activity-card {
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.activity-card:hover {
+  transform: translateY(-2px);
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar.small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--text-main);
+  color: var(--bg-app);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  overflow: hidden;
+}
+
+.avatar.small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.timestamp {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.activity-content {
+  padding-left: 2.75rem;
+}
+
+.activity-action {
+  margin-bottom: 1rem;
+  color: var(--text-main);
+  font-size: 0.95rem;
+}
+
+.activity-action p {
+  margin: 0;
+}
+
+.activity-action strong {
+  color: #10B981;
+}
+
+.activity-book-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  text-decoration: none;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.activity-book-card:hover {
+  border-color: #10B981;
+  background: var(--bg-accent);
+}
+
+.activity-book-card img {
+  width: 60px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.activity-book-card .book-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+}
+
+.activity-book-card .book-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.activity-review-quote {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-left: 3px solid #10B981;
+  background: var(--bg-secondary);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  border-radius: 0 8px 8px 0;
+}
