@@ -34,6 +34,8 @@ module.exports = {
   trustProxy: toInt(process.env.TRUST_PROXY, 0),
   // Path to the built frontend; when set and present, the API also serves the SPA
   frontendDist: process.env.FRONTEND_DIST || '',
+  // The site is served over plain HTTP (no TLS), so browsers must not be told to upgrade to HTTPS
+  allowHttp: process.env.ALLOW_HTTP === 'true',
   // Where proxied book covers are cached on disk
   coverCacheDir: process.env.COVER_CACHE_DIR || require('path').join(__dirname, '..', 'cache', 'covers'),
 

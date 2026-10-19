@@ -17,14 +17,18 @@ if (env.trustProxy) app.set('trust proxy', env.trustProxy);
 
 // Security headers. Images and fonts come from book cover CDNs and Google Fonts,
 // and /uploads is loaded cross-origin by the frontend when it's hosted separately.
+// Without TLS (ALLOW_HTTP), upgrade-insecure-requests would make browsers fetch
+// every asset over HTTPS and the page would load blank.
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  strictTransportSecurity: !env.allowHttp,
   contentSecurityPolicy: {
     directives: {
       'img-src': ["'self'", 'data:', 'blob:', 'https:'],
       'font-src': ["'self'", 'https://fonts.gstatic.com'],
       'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      'connect-src': ["'self'", ...env.corsOrigins]
+      'connect-src': ["'self'", ...env.corsOrigins],
+      'upgrade-insecure-requests': env.allowHttp ? null : []
     }
   }
 }));
