@@ -1,12 +1,16 @@
+import usePageTitle from '../hooks/usePageTitle';
+import { coverUrl } from '../utils/covers';
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api, { assetUrl } from '../api/client';
 import { AuthContext } from '../contexts/AuthContext';
 import { FALLBACK_IMAGE } from '../assets/fallbackImage';
+import SignInPrompt from '../components/SignInPrompt';
 import { Send, Eye, EyeOff, Users, BookOpen, Trash2, Check } from 'lucide-react';
 import './ClubDetail.css';
 
 const ClubDetail = () => {
+  usePageTitle('Book club');
   const { id } = useParams();
   const navigate = useNavigate();
   const [club, setClub] = useState(null);
@@ -22,10 +26,12 @@ const ClubDetail = () => {
   const prevMsgLengthRef = useRef(0);
 
   useEffect(() => {
+    // Clubs are members-only on the API
+    if (!user) return;
     fetchClub();
     const interval = setInterval(fetchClub, 10000); // poll every 10s for new messages
     return () => clearInterval(interval);
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
     const currentLength = club?.messages?.length || 0;
@@ -39,7 +45,7 @@ const ClubDetail = () => {
 
   const fetchClub = async () => {
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/clubs/${id}`);
+      const { data } = await api.get(`/api/clubs/${id}`);
       setClub(data);
       setLoading(false);
     } catch (error) {
@@ -52,7 +58,7 @@ const ClubDetail = () => {
     if (!user) return alert('Please login to join the club');
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data: members } = await axios.post(`${import.meta.env.VITE_API_URL}/api/clubs/${id}/join`, {}, config);
+      const { data: members } = await api.post(`/api/clubs/${id}/join`, {}, config);
       setClub({ ...club, members });
     } catch (error) {
       console.error(error);
@@ -65,7 +71,7 @@ const ClubDetail = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const action = isChecked ? 'add' : 'remove';
-      const { data } = await axios.put(`${import.meta.env.VITE_API_URL}/api/clubs/${id}/progress`, { chapterIndex, action }, config);
+      const { data } = await api.put(`/api/clubs/${id}/progress`, { chapterIndex, action }, config);
       
       const updatedMembers = club.members.map(m => 
         m.user._id === user._id ? { ...m, progress: data.progress, readChapters: data.readChapters } : m
@@ -82,7 +88,7 @@ const ClubDetail = () => {
 
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data: newMessage } = await axios.post(`${import.meta.env.VITE_API_URL}/api/clubs/${id}/messages`, {
+      const { data: newMessage } = await api.post(`/api/clubs/${id}/messages`, {
         text: chatInput,
         isSpoiler
       }, config);
@@ -110,6 +116,7 @@ const ClubDetail = () => {
     setRevealedSpoilers(newRevealed);
   };
 
+  if (!user) return <SignInPrompt message="Sign in to see this club, its members and the chat." />;
   if (loading) return <div className="loading" style={{ padding: '4rem 0' }}><div className="spinner"></div></div>;
   if (!club) return <div className="loading">Club not found</div>;
 
@@ -127,7 +134,7 @@ const ClubDetail = () => {
     }
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/clubs/${id}`, config);
+      await api.delete(`/api/clubs/${id}`, config);
       navigate('/clubs');
     } catch (error) {
       console.error('Failed to delete club:', error);
@@ -139,7 +146,7 @@ const ClubDetail = () => {
     <div className="club-detail-page animate-fade-in">
       <div className="club-detail-header glass-panel">
         <img 
-          src={club.book?.coverImage ? club.book.coverImage.replace('-S.jpg', '-M.jpg') : FALLBACK_IMAGE} 
+          src={coverUrl(club.book?.coverImage, 'M')} 
           alt={club.book?.title} 
           className="club-book-cover"
           onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
@@ -220,7 +227,7 @@ const ClubDetail = () => {
                 <div className="member-info">
                   <div className="avatar small">
                     {member.user.avatar ? (
-                      <img src={`${import.meta.env.VITE_API_URL}${member.user.avatar}`} alt="Avatar" />
+                      <img src={assetUrl(member.user.avatar)} alt="Avatar" />
                     ) : (
                       member.user.name.charAt(0).toUpperCase()
                     )}
@@ -257,7 +264,7 @@ const ClubDetail = () => {
                   {!isMine && (
                     <div className="avatar x-small">
                       {msg.user.avatar ? (
-                        <img src={`${import.meta.env.VITE_API_URL}${msg.user.avatar}`} alt="Avatar" />
+                        <img src={assetUrl(msg.user.avatar)} alt="Avatar" />
                       ) : (
                         msg.user.name.charAt(0).toUpperCase()
                       )}

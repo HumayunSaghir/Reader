@@ -148,46 +148,6 @@
   background: #B91C1C;
 }
 
-.custom-modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.custom-modal {
-  background: var(--bg-app);
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  border: 1px solid var(--border-color);
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.custom-modal h3 {
-  margin-bottom: 1rem;
-  color: var(--text-main);
-  font-size: 1.5rem;
-}
-
-.custom-modal p {
-  color: var(--text-muted);
-  margin-bottom: 2rem;
-  line-height: 1.5;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
 @keyframes popIn {
   from { transform: scale(0.9); opacity: 0; }
   to { transform: scale(1); opacity: 1; }

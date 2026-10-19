@@ -1,3 +1,5 @@
+const { sendError } = require('../middlewares/errorHandler');
+const mongoose = require('mongoose');
 const ReadingLog = require('../models/ReadingLog');
 const Activity = require('../models/Activity');
 
@@ -92,7 +94,7 @@ const calculateStreaks = (dateMap, clientToday = null) => {
 const getReadingActivity = async (req, res) => {
   try {
     const userId = req.user._id;
-    const clientToday = req.query.today || new Date().toISOString().split('T')[0];
+    const clientToday = isPlausibleToday(req.query.today) ? req.query.today : new Date().toISOString().split('T')[0];
 
     // 1. Fetch from ReadingLog (genuine reading sessions)
     const logs = await ReadingLog.find({ user: userId });
@@ -118,15 +120,30 @@ const getReadingActivity = async (req, res) => {
       todayLogged
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
+};
+
+// The client sends its local date so streaks follow the reader's time zone.
+// Accept only a real YYYY-MM-DD date within a day of now (covers every UTC offset),
+// so past days can't be back-filled to fake a streak.
+const isPlausibleToday = (value) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const time = Date.parse(`${value}T12:00:00Z`);
+  return Number.isFinite(time) && Math.abs(time - Date.now()) <= 36 * 60 * 60 * 1000;
 };
 
 // POST /api/reading/log
 const logReadingToday = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { bookId, notes, date } = req.body;
+    const { bookId, date } = req.body;
+    if (date !== undefined && !isPlausibleToday(date)) {
+      return res.status(400).json({ message: 'You can only log reading for today' });
+    }
+    if (bookId !== undefined && bookId !== null && !mongoose.isValidObjectId(bookId)) {
+      return res.status(400).json({ message: 'Invalid book' });
+    }
     const targetDate = date || new Date().toISOString().split('T')[0];
 
     await recordReadingActivity(userId, bookId, 1, targetDate);
@@ -150,7 +167,7 @@ const logReadingToday = async (req, res) => {
       todayLogged: true
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 

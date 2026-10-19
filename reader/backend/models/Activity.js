@@ -13,4 +13,6 @@ const activitySchema = new mongoose.Schema({
   customShelf: { type: String }
 }, { timestamps: true });
 
+activitySchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Activity', activitySchema);

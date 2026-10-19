@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { coverUrl } from '../utils/covers';
+import api from '../api/client';
 import { 
   Trophy, 
   Target, 
@@ -34,8 +35,8 @@ const ReadingChallenge = ({ user }) => {
     try {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/reading/challenge?year=${year}`,
+      const { data } = await api.get(
+        `/api/reading/challenge?year=${year}`,
         config
       );
       setChallengeData(data);
@@ -65,8 +66,8 @@ const ReadingChallenge = ({ user }) => {
     try {
       setSavingGoal(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/reading/challenge`,
+      const { data } = await api.post(
+        `/api/reading/challenge`,
         { year: selectedYear, target: targetNum },
         config
       );
@@ -297,7 +298,7 @@ const ReadingChallenge = ({ user }) => {
                   >
                     <div className="book-card-cover-wrap">
                       <img 
-                        src={book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg') : FALLBACK_IMAGE} 
+                        src={coverUrl(book.coverImage, 'M')} 
                         alt={book.title}
                         onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
                       />

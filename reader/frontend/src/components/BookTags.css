@@ -1,0 +1,147 @@
+.book-tags {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.book-tags-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.book-tags-header h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+}
+
+.book-tags-browse {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.book-tags-browse:hover {
+  color: var(--text-main);
+}
+
+.book-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.book-tags-empty {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--bg-app);
+  font-size: 0.85rem;
+}
+
+.tag-chip.mine {
+  border-color: var(--text-main);
+}
+
+.tag-chip-label {
+  padding: 0.3rem 0.6rem 0.3rem 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.tag-chip-label::before {
+  content: '#';
+  color: var(--text-muted);
+  margin-right: 1px;
+}
+
+.tag-chip-label:hover {
+  text-decoration: underline;
+}
+
+.tag-chip-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0 0.6rem;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border-left: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.tag-chip-vote:hover {
+  color: var(--text-main);
+  background: var(--border-color);
+}
+
+.tag-chip.mine .tag-chip-vote {
+  background: var(--bg-accent);
+  color: var(--text-main);
+}
+
+.book-tags-form {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.book-tags-form .input-field {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.9rem;
+  background: var(--bg-app);
+}
+
+.book-tags-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.25rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.book-tags-suggestions button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.book-tags-suggestions button:last-child {
+  border-bottom: none;
+}
+
+.book-tags-suggestions button:hover {
+  background: var(--bg-secondary);
+}
+
+.suggestion-count {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}

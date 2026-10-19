@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds may talk to a local API over plain HTTP at any address
+     (e.g. the computer's LAN IP from a phone on Wi-Fi). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

@@ -1,11 +1,12 @@
 const express = require('express');
 const { addReview, getBookReviews, toggleLikeReview, addReply, toggleLikeReply, deleteReview, deleteReply, getReviewSummary } = require('../controllers/reviewController');
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, optionalAuth } = require('../middlewares/authMiddleware');
+const { aiLimiter } = require('../middlewares/rateLimits');
 const router = express.Router({ mergeParams: true }); 
 
 router.post('/', protect, addReview);
 router.get('/', getBookReviews);
-router.get('/summary', getReviewSummary);
+router.get('/summary', optionalAuth, aiLimiter, getReviewSummary);
 router.put('/:reviewId/like', protect, toggleLikeReview);
 router.post('/:reviewId/replies', protect, addReply);
 router.put('/:reviewId/replies/:replyId/like', protect, toggleLikeReply);

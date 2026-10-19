@@ -24,4 +24,6 @@ const bookClubSchema = new mongoose.Schema({
   messages: [messageSchema]
 }, { timestamps: true });
 
+bookClubSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('BookClub', bookClubSchema);

@@ -1,3 +1,5 @@
+import { assetUrl } from '../api/client';
+import { coverUrl } from '../utils/covers';
 import React, { useState } from 'react';
 import { 
   X, 
@@ -99,7 +101,7 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
             <>
               <div className="story-book-cover-frame">
                 <img 
-                  src={topBook.coverImage ? topBook.coverImage.replace('-S.jpg', '-L.jpg') : FALLBACK_IMAGE} 
+                  src={coverUrl(topBook.coverImage, 'L')} 
                   alt={topBook.title}
                   onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
                 />
@@ -385,7 +387,7 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
                   </div>
                   {userAvatar ? (
                     <img 
-                      src={`${import.meta.env.VITE_API_URL}${userAvatar}`} 
+                      src={assetUrl(userAvatar)} 
                       alt={userName} 
                       className="poster-avatar"
                     />
@@ -441,7 +443,7 @@ const ReaderWrappedModal = ({ wrappedData, onClose }) => {
                     {topBook ? (
                       <div className="poster-topbook-row">
                         <img 
-                          src={topBook.coverImage ? topBook.coverImage.replace('-S.jpg', '-L.jpg') : FALLBACK_IMAGE} 
+                          src={coverUrl(topBook.coverImage, 'L')} 
                           alt={topBook.title}
                           className="poster-book-thumb"
                           onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}

@@ -1,25 +1,36 @@
+const { sendError } = require('../middlewares/errorHandler');
+const mongoose = require('mongoose');
 const BookClub = require('../models/BookClub');
+
+const MAX_CHAPTERS = 200;
+const MAX_MESSAGE_CHARS = 2000;
+const MAX_STORED_MESSAGES = 2000;
 const Book = require('../models/Book');
 const { recordReadingActivity } = require('./readingLogController');
 
 // Get all clubs
 const getClubs = async (req, res) => {
   try {
+    // The list only needs member counts; chat history stays on the detail endpoint
     const clubs = await BookClub.find()
+      .select('-messages -members.readChapters')
       .populate('book', 'title coverImage author')
       .populate('creator', 'name avatar')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
     res.json(clubs);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
 // Get single club
 const getClubById = async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Book club not found' });
     const club = await BookClub.findById(req.params.id)
-      .populate('book')
+      .populate('book', '-description')
       .populate('creator', 'name avatar')
       .populate('members.user', 'name avatar')
       .populate('messages.user', 'name avatar');
@@ -27,18 +38,22 @@ const getClubById = async (req, res) => {
     if (!club) return res.status(404).json({ message: 'Book club not found' });
     res.json(club);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
 // Create a new club
 const createClub = async (req, res) => {
-  const { name, description, bookId, totalChapters } = req.body;
+  const { bookId, totalChapters } = req.body;
+  const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+  const description = typeof req.body.description === 'string' ? req.body.description.trim().slice(0, 1000) : '';
+  if (!name || name.length > 80) return res.status(400).json({ message: 'Club names must be 1-80 characters' });
+  if (!mongoose.isValidObjectId(bookId)) return res.status(400).json({ message: 'Choose a book for the club' });
   try {
     const book = await Book.findById(bookId);
     if (!book) return res.status(404).json({ message: 'Book not found' });
 
-    const numChapters = Math.max(1, parseInt(totalChapters) || 10);
+    const numChapters = Math.min(Math.max(1, parseInt(totalChapters) || 10), MAX_CHAPTERS);
     const chapters = Array.from({ length: numChapters }, (_, i) => `Chapter ${i + 1}`);
 
     const club = await BookClub.create({
@@ -53,7 +68,7 @@ const createClub = async (req, res) => {
 
     res.status(201).json(club);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -75,19 +90,25 @@ const joinClub = async (req, res) => {
 
     res.json(updatedClub.members);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
 // Update reading progress
 const updateProgress = async (req, res) => {
   const { chapterIndex, action } = req.body;
+  if (!['add', 'remove'].includes(action)) return res.status(400).json({ message: 'Invalid action' });
   try {
     const club = await BookClub.findById(req.params.id);
     if (!club) return res.status(404).json({ message: 'Club not found' });
 
     const member = club.members.find(m => m.user.toString() === req.user._id.toString());
     if (!member) return res.status(403).json({ message: 'Not a member of this club' });
+
+    const total = club.totalChapters || club.chapters?.length || 10;
+    if (!Number.isInteger(chapterIndex) || chapterIndex < 0 || chapterIndex >= total) {
+      return res.status(400).json({ message: 'Invalid chapter' });
+    }
 
     if (action === 'add') {
       if (!member.readChapters.includes(chapterIndex)) {
@@ -99,7 +120,6 @@ const updateProgress = async (req, res) => {
     }
     
     // Recalculate progress percentage
-    const total = club.totalChapters || club.chapters?.length || 10;
     member.progress = Math.round((member.readChapters.length / total) * 100);
     if (member.progress > 100) member.progress = 100;
 
@@ -107,13 +127,16 @@ const updateProgress = async (req, res) => {
 
     res.json({ message: 'Progress updated', progress: member.progress, readChapters: member.readChapters });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
 // Send message to club chat
 const sendMessage = async (req, res) => {
-  const { text, isSpoiler } = req.body;
+  const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
+  const isSpoiler = req.body.isSpoiler === true;
+  if (!text) return res.status(400).json({ message: 'Message text is required' });
+  if (text.length > MAX_MESSAGE_CHARS) return res.status(400).json({ message: `Messages are limited to ${MAX_MESSAGE_CHARS} characters` });
   try {
     const club = await BookClub.findById(req.params.id);
     if (!club) return res.status(404).json({ message: 'Club not found' });
@@ -121,13 +144,11 @@ const sendMessage = async (req, res) => {
     const member = club.members.find(m => m.user.toString() === req.user._id.toString());
     if (!member) return res.status(403).json({ message: 'Not a member of this club' });
 
-    const newMessage = {
-      user: req.user._id,
-      text,
-      isSpoiler: isSpoiler || false
-    };
-
-    club.messages.push(newMessage);
+    club.messages.push({ user: req.user._id, text, isSpoiler });
+    // Keep the club document bounded (MongoDB documents max out at 16 MB)
+    if (club.messages.length > MAX_STORED_MESSAGES) {
+      club.messages = club.messages.slice(-MAX_STORED_MESSAGES);
+    }
     await club.save();
 
     const updatedClub = await BookClub.findById(req.params.id)
@@ -136,7 +157,7 @@ const sendMessage = async (req, res) => {
     // Return the specific message with populated user (which is the last one in the array)
     res.status(201).json(updatedClub.messages[updatedClub.messages.length - 1]);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -153,7 +174,7 @@ const deleteClub = async (req, res) => {
     await BookClub.findByIdAndDelete(req.params.id);
     res.json({ message: 'Book club deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 

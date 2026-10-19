@@ -37,8 +37,8 @@ To beat Goodreads, we need to focus on what it lacks: **modern UI, intelligent f
 ## 🔍 Phase 4: Enhanced Discovery
 *Goodreads relies heavily on manual searching. We can make discovery fun.*
 
-*   **Tinder-Style Swiping for Books**: A discovery mode where users are shown book covers and descriptions. Swipe right to add to "Want to Read", swipe left to skip.
-*   **Micro-Tagging**: Allow users to tag books with highly specific micro-tropes (*"unreliable narrator"*, *"found family"*, *"slow burn"*), and allow filtering by these tags.
+*   **Tinder-Style Swiping for Books**: A discovery mode where users are shown book covers and descriptions. Swipe right to add to "Want to Read", swipe left to skip. -> DONE
+*   **Micro-Tagging**: Allow users to tag books with highly specific micro-tropes (*"unreliable narrator"*, *"found family"*, *"slow burn"*), and allow filtering by these tags. -> DONE
 
 ---
 

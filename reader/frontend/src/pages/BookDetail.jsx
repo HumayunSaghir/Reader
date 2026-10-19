@@ -1,436 +1,504 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import axios from 'axios';
-import { AuthContext } from '../contexts/AuthContext';
-import './BookDetail.css';
-import { FALLBACK_IMAGE } from '../assets/fallbackImage';
-import ReviewItem from '../components/ReviewItem';
+import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { Bot, Sparkles, BrainCircuit, MessageSquareText, SendHorizontal, X } from 'lucide-react';
+import { Bot, Sparkles, BrainCircuit, MessageSquareText, SendHorizontal, X, Check, Star, Calendar, FileText } from 'lucide-react';
+import api, { errorMessage } from '../api/client';
+import { AuthContext } from '../contexts/AuthContext';
+import { FALLBACK_IMAGE } from '../assets/fallbackImage';
+import { coverSrc } from '../components/BookCard';
+import ReviewItem from '../components/ReviewItem';
+import BookTags from '../components/BookTags';
+import usePageTitle from '../hooks/usePageTitle';
+import './BookDetail.css';
+
+const SHELF_OPTIONS = [
+  { value: 'want-to-read', label: 'Want to read' },
+  { value: 'currently-reading', label: 'Reading' },
+  { value: 'read', label: 'Read' }
+];
+const SHELF_LABELS = Object.fromEntries(SHELF_OPTIONS.map(o => [o.value, o.label]));
+const DESCRIPTION_PREVIEW_CHARS = 600;
+
+// Descriptions arrive as plain text, Markdown or simple HTML
+const cleanDescription = (text) => (text || '')
+  .replace(/<br\s*\/?>/gi, '\n')
+  .replace(/<\/p>\s*<p>/gi, '\n\n')
+  .replace(/<[^>]+>/g, '')
+  .replace(/\r\n/g, '\n')
+  .trim();
+
+const BookDetailSkeleton = () => (
+  <div className="book-layout" aria-busy="true">
+    <div className="book-aside"><div className="book-cover skeleton" /></div>
+    <div className="book-main">
+      <div className="skeleton" style={{ height: '2.5rem', width: '70%', marginBottom: '0.75rem' }} />
+      <div className="skeleton" style={{ height: '1.25rem', width: '40%', marginBottom: '2rem' }} />
+      {[95, 90, 97, 60].map((w, i) => <div key={i} className="skeleton skeleton-text" style={{ width: `${w}%` }} />)}
+    </div>
+  </div>
+);
 
 const BookDetail = () => {
   const { id } = useParams();
-  const [book, setBook] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
-  
-  // review form state
+  const userId = user?._id;
+
+  const [book, setBook] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [description, setDescription] = useState(null); // null = still loading
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
-  
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   const [shelfStatus, setShelfStatus] = useState(null);
   const [activeCustomShelves, setActiveCustomShelves] = useState([]);
+  const [shelfSaving, setShelfSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const toastTimer = useRef(null);
 
-  // New AI Features State
   const [recommendation, setRecommendation] = useState(null);
   const [loadingRecommendation, setLoadingRecommendation] = useState(false);
   const [reviewSummary, setReviewSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
 
-  // AI Chat state
   const [chatOpen, setChatOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    if (chatOpen) {
-      scrollToBottom();
-    }
-  }, [chatHistory, chatOpen]);
+  usePageTitle(book ? `${book.title} by ${book.author}` : 'Book');
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMessage(null), 3000);
   };
+
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  useEffect(() => {
+    if (chatOpen) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory, chatOpen]);
 
   const fetchReviews = async () => {
     try {
-      const { data: reviewsData } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/${id}/reviews`);
-      setReviews(reviewsData);
+      const { data } = await api.get(`/api/books/${id}/reviews`);
+      setReviews(data);
     } catch (error) {
       console.error(error);
+    } finally {
+      setReviewsLoading(false);
     }
   };
+
+  // The book renders as soon as it arrives; everything else loads alongside it
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    setBook(null);
+    setDescription(null);
+    setDescriptionExpanded(false);
+    setRecommendation(null);
+    setReviewSummary(null);
+    setChatHistory([]);
+    setReviewsLoading(true);
+
+    api.get(`/api/books/${id}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setBook(data);
+        if (data.description) {
+          setDescription(data.description);
+        } else {
+          api.get(`/api/books/${id}/description`)
+            .then(({ data: d }) => { if (!cancelled) setDescription(d.description || ''); })
+            .catch(() => { if (!cancelled) setDescription(''); });
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setLoadError(error.response?.status === 404 ? 'not-found' : errorMessage(error));
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    fetchReviews();
+    return () => { cancelled = true; };
+  }, [id]);
 
   useEffect(() => {
-    const fetchBookAndReviews = async () => {
-      try {
-        const { data: bookData } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/${id}`);
-        setBook(bookData);
-        
-        await fetchReviews();
+    if (!userId) {
+      setShelfStatus(null);
+      setActiveCustomShelves([]);
+      return;
+    }
+    api.get(`/api/books/${id}/shelf`)
+      .then(({ data }) => {
+        setShelfStatus(data.status || null);
+        setActiveCustomShelves(data.customShelves || []);
+      })
+      .catch(() => {});
+  }, [id, userId]);
 
-        if (user) {
-          const config = { headers: { Authorization: `Bearer ${user.token}` } };
-          const { data: shelves } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/shelves`, config);
-          const currentBookShelf = shelves.find(s => s.book._id === id);
-          if (currentBookShelf) {
-            setShelfStatus(currentBookShelf.status);
-            setActiveCustomShelves(currentBookShelf.customShelves || []);
-          }
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error(error);
-        setLoading(false);
-      }
-    };
-    fetchBookAndReviews();
-  }, [id, user]);
+  // Prefill the form with the user's existing review so posting edits it
+  const myReview = userId ? reviews.find(r => r.user?._id === userId) : null;
+  useEffect(() => {
+    if (myReview) {
+      setRating(myReview.rating);
+      setReviewText(myReview.reviewText || '');
+    }
+  }, [myReview?._id]);
 
-  const handleShelfUpdate = async (status) => {
-    if (!user) return showToast("Please login first to add books.");
+  const updateShelf = async (status) => {
+    if (!user) return showToast('Log in to add books to your shelves.');
+    const previous = shelfStatus;
+    const next = status === shelfStatus ? null : status;
+    setShelfStatus(next); // optimistic
+    setShelfSaving(true);
     try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/shelf`, { status }, config);
-      setShelfStatus(status);
-      showToast(`Book successfully added to ${status.replace('-', ' ')}!`);
+      if (next === null && activeCustomShelves.length === 0) {
+        await api.delete(`/api/books/${id}/shelf`);
+      } else {
+        await api.post(`/api/books/${id}/shelf`, { status: next });
+      }
+      showToast(next ? `Added to ${SHELF_LABELS[next]}` : 'Removed from your shelves');
     } catch (error) {
-      console.error(error);
-      showToast("Failed to update shelf.");
+      setShelfStatus(previous);
+      showToast(errorMessage(error, 'Could not update your shelf.'));
+    } finally {
+      setShelfSaving(false);
     }
   };
 
-  const handleCustomShelfToggle = async (shelfName) => {
-    if (!user) return showToast("Please login first.");
+  const toggleCustomShelf = async (shelfName) => {
     const isAdding = !activeCustomShelves.includes(shelfName);
     try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/shelf`, { 
-        customShelf: shelfName, 
-        action: isAdding ? 'add' : 'remove' 
-      }, config);
-      
-      if (isAdding) {
-        setActiveCustomShelves([...activeCustomShelves, shelfName]);
-        showToast(`Added to ${shelfName}!`);
-      } else {
-        setActiveCustomShelves(activeCustomShelves.filter(s => s !== shelfName));
-        showToast(`Removed from ${shelfName}.`);
-      }
+      await api.post(`/api/books/${id}/shelf`, { customShelf: shelfName, action: isAdding ? 'add' : 'remove' });
+      setActiveCustomShelves(prev => (isAdding ? [...prev, shelfName] : prev.filter(s => s !== shelfName)));
+      showToast(isAdding ? `Added to ${shelfName}` : `Removed from ${shelfName}`);
     } catch (error) {
-      console.error(error);
-      showToast("Failed to update shelf.");
-    }
-  };
-
-  const removeShelf = async () => {
-    if (!user) return showToast("Please login first.");
-    try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      if (activeCustomShelves.length === 0) {
-        await axios.delete(`${import.meta.env.VITE_API_URL}/api/books/${id}/shelf`, config);
-      } else {
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/shelf`, { status: null }, config);
-      }
-      setShelfStatus(null);
-      showToast('Status cleared.');
-    } catch (error) {
-      console.error(error);
+      showToast(errorMessage(error, 'Could not update the shelf.'));
     }
   };
 
   const submitReview = async (e) => {
     e.preventDefault();
-    if (!user) return showToast("Please login first to review.");
-    if (rating === 0 || rating === '0') return showToast("Please provide a star rating (1-5).");
+    if (!rating) return showToast('Choose a star rating first.');
+    setSubmittingReview(true);
     try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/reviews`, { rating, reviewText }, config);
+      await api.post(`/api/books/${id}/reviews`, { rating, reviewText });
       await fetchReviews();
-      setReviewText('');
+      const { data } = await api.get(`/api/books/${id}`);
+      setBook(prev => ({ ...prev, averageRating: data.averageRating, ratingsCount: data.ratingsCount }));
+      setReviewSummary(null);
+      showToast(myReview ? 'Review updated' : 'Review posted');
     } catch (error) {
-      console.error(error);
+      showToast(errorMessage(error, 'Could not post your review.'));
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
   const sendMessageToAI = async (e) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
-    
-    if (!user) {
-      showToast("Please login to use the AI Book Sommelier.");
-      return;
-    }
+    const text = chatInput.trim();
+    if (!text || chatLoading) return;
+    if (!user) return showToast('Log in to chat with the Book Sommelier.');
 
-    const newMessage = { role: 'user', content: chatInput };
-    const currentHistory = [...chatHistory, newMessage];
-    setChatHistory(currentHistory);
+    const newMessage = { role: 'user', content: text };
+    const history = [...chatHistory, newMessage];
+    setChatHistory(history);
     setChatInput('');
     setChatLoading(true);
-
     try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${id}/chat`, {
-        message: newMessage.content,
-        history: chatHistory
-      }, config);
-      
-      setChatHistory([...currentHistory, { role: 'model', content: data.reply }]);
+      const { data } = await api.post(`/api/books/${id}/chat`, { message: text, history: chatHistory });
+      setChatHistory([...history, { role: 'model', content: data.reply }]);
     } catch (error) {
-      console.error(error);
-      const errMsg = error.response?.data?.message || "Failed to get AI response.";
-      setChatHistory([...currentHistory, { role: 'model', content: `⚠️ Error: ${errMsg}` }]);
+      setChatHistory([...history, { role: 'model', content: `⚠️ ${errorMessage(error, 'The AI could not answer right now.')}`, isError: true }]);
+    } finally {
+      setChatLoading(false);
     }
-    setChatLoading(false);
   };
 
   const getRecommendation = async () => {
-    if (!user) return showToast("Please login first to get a personalized recommendation.");
+    if (!user) return showToast('Log in to get a personalized recommendation.');
     setLoadingRecommendation(true);
     try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/${id}/recommendation`, config);
+      const { data } = await api.get(`/api/books/${id}/recommendation`);
       setRecommendation(data.recommendation);
     } catch (error) {
-      console.error(error);
-      showToast("Failed to fetch recommendation.");
+      showToast(errorMessage(error, 'Could not get a recommendation.'));
+    } finally {
+      setLoadingRecommendation(false);
     }
-    setLoadingRecommendation(false);
   };
 
   const getReviewSummary = async () => {
     setLoadingSummary(true);
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/${id}/reviews/summary`);
+      const { data } = await api.get(`/api/books/${id}/reviews/summary`);
       setReviewSummary(data.summary);
     } catch (error) {
-      console.error(error);
-      showToast("Failed to fetch review summary.");
+      showToast(errorMessage(error, 'Could not summarize reviews.'));
+    } finally {
+      setLoadingSummary(false);
     }
-    setLoadingSummary(false);
   };
 
-  if (loading) return (
-    <div className="loading" style={{ padding: '4rem 0' }}>
-      <div className="spinner"></div>
-    </div>
-  );
-  if (!book) return <div className="loading">Book not found</div>;
+  if (loading) return <BookDetailSkeleton />;
+  if (loadError === 'not-found' || (!book && !loadError)) {
+    return (
+      <div className="empty-state" style={{ marginTop: '2rem' }}>
+        <h3>Book not found</h3>
+        <p style={{ marginBottom: '1rem' }}>It may have been removed, or the link is wrong.</p>
+        <Link to="/" className="btn-primary">Browse books</Link>
+      </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <div className="empty-state" style={{ marginTop: '2rem' }}>
+        <h3>Couldn't load this book</h3>
+        <p style={{ marginBottom: '1rem' }}>{loadError}</p>
+        <button className="btn-primary" onClick={() => window.location.reload()}>Try again</button>
+      </div>
+    );
+  }
+
+  const cleaned = cleanDescription(description);
+  const isLong = cleaned.length > DESCRIPTION_PREVIEW_CHARS;
+  const shownDescription = isLong && !descriptionExpanded ? `${cleaned.slice(0, DESCRIPTION_PREVIEW_CHARS).replace(/\s+\S*$/, '')}…` : cleaned;
 
   return (
     <div className="book-detail-page animate-fade-in">
-      {toastMessage && (
-        <div className="toast-notification">
-          {toastMessage}
-        </div>
-      )}
-      
-      <div className="book-header">
-        <div className="book-cover-large-container">
-          <img 
-            src={book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg').replace('-M.jpg', '-L.jpg') : FALLBACK_IMAGE} 
-            alt={book.title} 
-            className="book-cover-large" 
-            onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
-          />
-        </div>
-        <div className="book-details-info">
-          <h1>{book.title}</h1>
-          <h3 className="author">by {book.author}</h3>
-          
-          <div className="stats">
-            <span className="rating-pill">⭐ {book.averageRating?.toFixed(1) || '0.0'}</span>
-            <span className="review-count">{book.ratingsCount || 0} reviews</span>
+      <div className="toast-region" aria-live="polite">
+        {toastMessage && <div className="toast-notification">{toastMessage}</div>}
+      </div>
+
+      <div className="book-layout">
+        <aside className="book-aside">
+          <div className="book-cover">
+            <img
+              src={coverSrc(book.coverImage)}
+              alt={`Cover of ${book.title}`}
+              width="300"
+              height="450"
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+            />
           </div>
 
-          <div className="shelf-actions">
-            <button className={`btn-primary ${shelfStatus === 'want-to-read' ? 'active' : ''}`} onClick={() => handleShelfUpdate('want-to-read')}>Want to Read</button>
-            <button className={`btn-secondary ${shelfStatus === 'currently-reading' ? 'active' : ''}`} onClick={() => handleShelfUpdate('currently-reading')}>Reading</button>
-            <button className={`btn-secondary ${shelfStatus === 'read' ? 'active' : ''}`} onClick={() => handleShelfUpdate('read')}>Read</button>
-            {shelfStatus && (
-              <button className="btn-secondary" style={{ color: '#EF4444', borderColor: '#EF4444' }} onClick={removeShelf}>Clear Status</button>
-            )}
+          <div className="shelf-picker" role="group" aria-label="Reading status">
+            {SHELF_OPTIONS.map(option => (
+              <button
+                key={option.value}
+                className={`shelf-option ${shelfStatus === option.value ? 'is-active' : ''}`}
+                aria-pressed={shelfStatus === option.value}
+                onClick={() => updateShelf(option.value)}
+                disabled={shelfSaving}
+              >
+                {shelfStatus === option.value && <Check size={15} aria-hidden="true" />}
+                {option.label}
+              </button>
+            ))}
           </div>
-          
-          {user && user.customShelves && user.customShelves.length > 0 && (
-            <div className="custom-shelves-actions" style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>Custom Shelves:</span>
-              {user.customShelves.map(shelfName => (
-                <button 
-                  key={shelfName} 
-                  className={`btn-secondary ${activeCustomShelves.includes(shelfName) ? 'active-shelf' : ''}`}
-                  onClick={() => handleCustomShelfToggle(shelfName)}
-                  style={{ 
-                    padding: '0.3rem 0.8rem', 
-                    fontSize: '0.85rem',
-                    background: activeCustomShelves.includes(shelfName) ? 'var(--text-main)' : 'transparent',
-                    color: activeCustomShelves.includes(shelfName) ? 'var(--bg-app)' : 'var(--text-main)'
-                  }}
-                >
-                  {shelfName} {activeCustomShelves.includes(shelfName) ? '✓' : '+'}
-                </button>
-              ))}
+          {!user && <p className="shelf-hint"><Link to="/login">Log in</Link> to track this book.</p>}
+
+          {user?.customShelves?.length > 0 && (
+            <div className="custom-shelves">
+              <span className="custom-shelves-label">Your shelves</span>
+              <div className="custom-shelves-list">
+                {user.customShelves.map(name => {
+                  const active = activeCustomShelves.includes(name);
+                  return (
+                    <button key={name} className={`chip ${active ? 'is-active' : ''}`} aria-pressed={active} onClick={() => toggleCustomShelf(name)}>
+                      {active ? <Check size={12} aria-hidden="true" /> : '+'} {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </aside>
+
+        <div className="book-main">
+          <h1 className="book-title">{book.title}</h1>
+          <p className="book-author">by {book.author}</p>
+
+          <div className="book-facts">
+            <span className="book-fact rating">
+              <Star size={15} fill="currentColor" aria-hidden="true" />
+              {book.ratingsCount > 0 ? `${book.averageRating.toFixed(1)} · ${book.ratingsCount} ${book.ratingsCount === 1 ? 'rating' : 'ratings'}` : 'No ratings yet'}
+            </span>
+            {book.publishedYear && <span className="book-fact"><Calendar size={14} aria-hidden="true" /> {book.publishedYear}</span>}
+            {book.pageCount && <span className="book-fact"><FileText size={14} aria-hidden="true" /> {book.pageCount} pages</span>}
+          </div>
+
+          {book.genres?.length > 0 && (
+            <div className="book-genres">
+              {book.genres.slice(0, 5).map(g => <span key={g} className="genre-chip">{g}</span>)}
             </div>
           )}
 
-          <p className="description">{book.description}</p>
-          
-          <div className="recommendation-box glass-panel" style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-secondary)' }}>
-            <button className="btn-primary" onClick={getRecommendation} disabled={loadingRecommendation} style={{ width: '100%', marginBottom: recommendation ? '1rem' : '0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-              <BrainCircuit size={18} />
-              {loadingRecommendation ? 'Analyzing your reading history...' : 'Should I Read This?'}
-            </button>
-            {recommendation && (
-              <div className="recommendation-result" style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
-                <ReactMarkdown>{recommendation}</ReactMarkdown>
-              </div>
+          <section className="book-description" aria-label="Description">
+            {description === null ? (
+              [96, 92, 98, 70].map((w, i) => <div key={i} className="skeleton skeleton-text" style={{ width: `${w}%` }} />)
+            ) : cleaned ? (
+              <>
+                <div className="markdown"><ReactMarkdown>{shownDescription}</ReactMarkdown></div>
+                {isLong && (
+                  <button className="link-button" onClick={() => setDescriptionExpanded(v => !v)}>
+                    {descriptionExpanded ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="muted">No description is available for this book yet.</p>
             )}
-          </div>
-          
-          <div className="meta-info">
-            {book.publishedYear && <p><strong>Published:</strong> {book.publishedYear}</p>}
-            {book.isbn && <p><strong>ISBN:</strong> {book.isbn}</p>}
-          </div>
+          </section>
+
+          <BookTags bookId={id} user={user} showToast={showToast} />
+
+          <section className="ai-card">
+            <div className="ai-card-header">
+              <BrainCircuit size={18} aria-hidden="true" />
+              <div>
+                <h2>Should I read this?</h2>
+                <p>A personal match score based on the books you've rated 5 stars.</p>
+              </div>
+            </div>
+            {recommendation ? (
+              <div className="markdown ai-card-result"><ReactMarkdown>{recommendation}</ReactMarkdown></div>
+            ) : (
+              <button className="btn-primary" onClick={getRecommendation} disabled={loadingRecommendation}>
+                {loadingRecommendation ? 'Analyzing your reading history…' : 'Get my match score'}
+              </button>
+            )}
+          </section>
+
+          {book.isbn && <p className="book-meta-line">ISBN {book.isbn}</p>}
         </div>
       </div>
 
-      <div className="reviews-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-          <h2 style={{ margin: 0 }}>Community Reviews</h2>
-          <button className="btn-secondary" onClick={getReviewSummary} disabled={loadingSummary || reviews.length === 0} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Sparkles size={16} />
-            {loadingSummary ? 'Summarizing...' : 'Summarize with AI'}
+      <section className="reviews-section">
+        <div className="reviews-header">
+          <h2>Community reviews</h2>
+          <button className="btn-secondary with-icon" onClick={getReviewSummary} disabled={loadingSummary || reviews.length === 0}>
+            <Sparkles size={16} aria-hidden="true" />
+            {loadingSummary ? 'Summarizing…' : 'Summarize with AI'}
           </button>
         </div>
-        
+
         {reviewSummary && (
-          <div className="review-summary-box glass-panel" style={{ padding: '1rem', marginBottom: '2rem', background: 'var(--bg-secondary)', borderLeft: '4px solid #10B981' }}>
-            <h4 style={{ marginTop: 0, color: '#10B981' }}>AI Community Summary</h4>
-            <ReactMarkdown>{reviewSummary}</ReactMarkdown>
+          <div className="review-summary">
+            <h4>What readers are saying</h4>
+            <div className="markdown"><ReactMarkdown>{reviewSummary}</ReactMarkdown></div>
           </div>
         )}
-        
+
         {user ? (
-          <form className="review-form glass-panel" onSubmit={submitReview}>
-            <h4>Write a Review</h4>
-            <div className="form-group">
-              <label style={{ marginBottom: '0.5rem', display: 'block' }}>Rating</label>
-              <div className="star-rating-input">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <span 
-                    key={star} 
-                    className={`star-icon ${(hoverRating || rating) >= star ? 'active' : ''}`} 
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
+          <form className="review-form" onSubmit={submitReview}>
+            <h3>{myReview ? 'Your review' : 'Rate and review'}</h3>
+            <div className="star-rating-input" role="radiogroup" aria-label="Rating" onMouseLeave={() => setHoverRating(0)}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  type="button"
+                  key={star}
+                  role="radio"
+                  aria-checked={rating === star}
+                  aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                  className={`star-icon ${(hoverRating || rating) >= star ? 'active' : ''}`}
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoverRating(star)}
+                >
+                  ★
+                </button>
+              ))}
             </div>
-            <div className="form-group">
-              <textarea placeholder="What did you think of this book?" value={reviewText} onChange={e => setReviewText(e.target.value)} className="input-field" rows="4"></textarea>
-            </div>
-            <button type="submit" className="btn-primary">Post Review</button>
+            <label htmlFor="review-text" className="visually-hidden">Your review</label>
+            <textarea
+              id="review-text"
+              placeholder="What did you think? (optional)"
+              value={reviewText}
+              onChange={e => setReviewText(e.target.value)}
+              className="input-field"
+              rows="4"
+              maxLength={5000}
+            />
+            <button type="submit" className="btn-primary" disabled={submittingReview}>
+              {submittingReview ? 'Saving…' : myReview ? 'Update review' : 'Post review'}
+            </button>
           </form>
         ) : (
-          <div className="login-prompt glass-panel">
-            <p>Please login to leave a review.</p>
+          <div className="empty-state" style={{ marginBottom: '2rem' }}>
+            <p><Link to="/login" style={{ textDecoration: 'underline' }}>Log in</Link> to rate and review this book.</p>
           </div>
         )}
 
         <div className="reviews-list">
-          {reviews.map(review => (
-            <ReviewItem key={review._id} review={review} user={user} bookId={id} fetchReviews={fetchReviews} />
-          ))}
-          {reviews.length === 0 && <p className="no-reviews">No reviews yet. Be the first!</p>}
+          {reviewsLoading ? (
+            [0, 1].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 12 }} />)
+          ) : reviews.length > 0 ? (
+            reviews.map(review => <ReviewItem key={review._id} review={review} user={user} bookId={id} fetchReviews={fetchReviews} />)
+          ) : (
+            <p className="muted">No reviews yet. Be the first to share your thoughts!</p>
+          )}
         </div>
-      </div>
+      </section>
 
-      {/* AI Chat Floating Widget */}
-      <div className="ai-chat-widget" style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 1000 }}>
-        {!chatOpen && (
-          <button 
-            className="ai-chat-fab"
-            onClick={() => setChatOpen(true)}
-            style={{
-              width: '60px', height: '60px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #10B981, #059669)',
-              color: 'white', border: 'none', boxShadow: '0 10px 25px rgba(16, 185, 129, 0.4)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'transform 0.2s'
-            }}
-          >
-            <MessageSquareText size={28} />
-          </button>
-        )}
-        
-        {chatOpen && (
-          <div className="ai-chat-window glass-panel" style={{
-            width: '350px', height: '500px', display: 'flex', flexDirection: 'column',
-            borderRadius: '16px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-            background: 'var(--bg-app)', border: '1px solid var(--border-color)'
-          }}>
-            <div className="ai-chat-header" style={{
-              padding: '1rem', background: 'linear-gradient(135deg, #10B981, #059669)',
-              color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Bot size={20} /> Book Sommelier AI
-              </h4>
-              <button onClick={() => setChatOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={20} /></button>
+      <div className="ai-chat-widget">
+        {chatOpen ? (
+          <div className="ai-chat-window" role="dialog" aria-label="Book Sommelier chat">
+            <div className="ai-chat-header">
+              <h4><Bot size={20} aria-hidden="true" /> Book Sommelier</h4>
+              <button onClick={() => setChatOpen(false)} aria-label="Close chat"><X size={20} /></button>
             </div>
-            
-            <div className="ai-chat-messages" style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+            <div className="ai-chat-messages">
               {chatHistory.length === 0 && (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem', fontSize: '0.9rem' }}>
-                  Ask me anything about <strong>{book.title}</strong>! <br/>I can discuss themes, characters, or give a spoiler-free recommendation.
+                <div className="ai-chat-empty">
+                  Ask anything about <strong>{book.title}</strong>: themes, characters, or whether it's right for you. Spoiler-free unless you ask.
                 </div>
               )}
               {chatHistory.map((msg, idx) => (
-                <div key={idx} style={{
-                  alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                  background: msg.role === 'user' ? 'var(--bg-accent)' : 'var(--bg-secondary)',
-                  color: msg.role === 'user' ? 'var(--text-main)' : 'var(--text-main)',
-                  padding: '0.75rem 1rem', borderRadius: '12px', maxWidth: '85%',
-                  borderBottomRightRadius: msg.role === 'user' ? '0' : '12px',
-                  borderBottomLeftRadius: msg.role === 'model' ? '0' : '12px',
-                  fontSize: '0.9rem', lineHeight: '1.5'
-                }}>
+                <div key={idx} className={`ai-chat-bubble ${msg.role === 'user' ? 'from-user' : 'from-ai'} ${msg.isError ? 'is-error' : ''}`}>
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
               ))}
               {chatLoading && (
-                <div style={{ alignSelf: 'flex-start', background: 'var(--bg-secondary)', padding: '0.75rem 1rem', borderRadius: '12px', borderBottomLeftRadius: '0' }}>
-                  <div className="typing-indicator" style={{ display: 'flex', gap: '4px' }}>
-                    <span style={{ animation: 'bounce 1s infinite' }}>.</span>
-                    <span style={{ animation: 'bounce 1s infinite 0.2s' }}>.</span>
-                    <span style={{ animation: 'bounce 1s infinite 0.4s' }}>.</span>
-                  </div>
+                <div className="ai-chat-bubble from-ai typing" aria-label="AI is typing">
+                  <span /><span /><span />
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
-            
-            <form onSubmit={sendMessageToAI} style={{ display: 'flex', padding: '0.75rem', borderTop: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-              <input 
-                type="text" 
+
+            <form onSubmit={sendMessageToAI} className="ai-chat-form">
+              <label htmlFor="chat-input" className="visually-hidden">Message</label>
+              <input
+                id="chat-input"
+                type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask about the book..." 
-                style={{ flex: 1, padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)' }}
+                placeholder="Ask about the book…"
+                maxLength={1000}
+                autoComplete="off"
               />
-              <button type="submit" disabled={chatLoading} style={{
-                background: 'var(--text-main)', color: 'var(--bg-app)', border: 'none', borderRadius: '50%',
-                width: '36px', height: '36px', marginLeft: '0.5rem', cursor: chatLoading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
+              <button type="submit" disabled={chatLoading || !chatInput.trim()} aria-label="Send">
                 <SendHorizontal size={18} />
               </button>
             </form>
           </div>
+        ) : (
+          <button className="ai-chat-fab" onClick={() => setChatOpen(true)} aria-label="Ask the AI about this book">
+            <MessageSquareText size={24} aria-hidden="true" />
+            <span>Ask AI</span>
+          </button>
         )}
       </div>
     </div>

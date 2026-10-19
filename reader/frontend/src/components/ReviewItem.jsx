@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api, { assetUrl } from '../api/client';
 import './ReviewItem.css';
 
 const ReplyNode = ({ reply, allReplies, user, bookId, reviewId, fetchReviews, setShowLikesModal, toggleLikeReply, requestDeleteReply }) => {
@@ -18,7 +18,7 @@ const ReplyNode = ({ reply, allReplies, user, bookId, reviewId, fetchReviews, se
     if (!replyText.trim()) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${bookId}/reviews/${reviewId}/replies`, { 
+      await api.post(`/api/books/${bookId}/reviews/${reviewId}/replies`, { 
         text: replyText,
         parentReplyId: reply._id
       }, config);
@@ -34,7 +34,7 @@ const ReplyNode = ({ reply, allReplies, user, bookId, reviewId, fetchReviews, se
     <div className="reply-item">
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.25rem' }}>
         {reply.user?.avatar ? (
-          <img src={`${import.meta.env.VITE_API_URL}${reply.user.avatar}`} alt="Avatar" className="reply-avatar" />
+          <img src={assetUrl(reply.user.avatar)} alt="Avatar" className="reply-avatar" />
         ) : (
           <div className="reply-avatar-placeholder">{reply.user?.name?.charAt(0).toUpperCase() || 'A'}</div>
         )}
@@ -106,9 +106,9 @@ const ReviewItem = ({ review, user, bookId, fetchReviews }) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (deleteTarget.type === 'review') {
-        await axios.delete(`${import.meta.env.VITE_API_URL}/api/books/${bookId}/reviews/${review._id}`, config);
+        await api.delete(`/api/books/${bookId}/reviews/${review._id}`, config);
       } else {
-        await axios.delete(`${import.meta.env.VITE_API_URL}/api/books/${bookId}/reviews/${review._id}/replies/${deleteTarget.id}`, config);
+        await api.delete(`/api/books/${bookId}/reviews/${review._id}/replies/${deleteTarget.id}`, config);
       }
       setDeleteTarget(null);
       fetchReviews();
@@ -122,7 +122,7 @@ const ReviewItem = ({ review, user, bookId, fetchReviews }) => {
     if (!user) return alert('Please login to like');
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/books/${bookId}/reviews/${review._id}/like`, {}, config);
+      await api.put(`/api/books/${bookId}/reviews/${review._id}/like`, {}, config);
       fetchReviews();
     } catch (error) {
       console.error(error);
@@ -134,7 +134,7 @@ const ReviewItem = ({ review, user, bookId, fetchReviews }) => {
     if (!replyText.trim()) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${bookId}/reviews/${review._id}/replies`, { text: replyText }, config);
+      await api.post(`/api/books/${bookId}/reviews/${review._id}/replies`, { text: replyText }, config);
       setReplyText('');
       setShowReplyForm(false);
       fetchReviews();
@@ -147,7 +147,7 @@ const ReviewItem = ({ review, user, bookId, fetchReviews }) => {
     if (!user) return alert('Please login to like');
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put(`${import.meta.env.VITE_API_URL}/api/books/${bookId}/reviews/${review._id}/replies/${replyId}/like`, {}, config);
+      await api.put(`/api/books/${bookId}/reviews/${review._id}/replies/${replyId}/like`, {}, config);
       fetchReviews();
     } catch (error) {
       console.error(error);
@@ -159,7 +159,7 @@ const ReviewItem = ({ review, user, bookId, fetchReviews }) => {
       <div className="review-header" style={{ marginBottom: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {review.user?.avatar ? (
-            <img src={`${import.meta.env.VITE_API_URL}${review.user.avatar}`} alt="Avatar" className="reviewer-avatar" />
+            <img src={assetUrl(review.user.avatar)} alt="Avatar" className="reviewer-avatar" />
           ) : (
             <div className="reviewer-avatar-placeholder">{review.user?.name?.charAt(0).toUpperCase() || 'A'}</div>
           )}
@@ -219,7 +219,7 @@ const ReviewItem = ({ review, user, bookId, fetchReviews }) => {
               {showLikesModal.likes.map(likeUser => (
                 <div key={likeUser._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '10px 0', padding: '10px', background: 'var(--bg-app)', borderRadius: '8px' }}>
                   {likeUser.avatar ? (
-                    <img src={`${import.meta.env.VITE_API_URL}${likeUser.avatar}`} alt="Avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                    <img src={assetUrl(likeUser.avatar)} alt="Avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--brand-color)', color: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{likeUser.name.charAt(0).toUpperCase()}</div>
                   )}

@@ -1,50 +1,83 @@
-import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import api, { errorMessage } from '../api/client';
 
 export const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+const readStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('userInfo')) || null;
+  } catch {
+    return null;
+  }
+};
 
+const storeUser = (user) => {
+  try {
+    if (user) localStorage.setItem('userInfo', JSON.stringify(user));
+    else localStorage.removeItem('userInfo');
+  } catch {
+    // Storage unavailable: the session just won't survive a reload
+  }
+};
+
+export const AuthProvider = ({ children }) => {
+  // Read synchronously so signed-in pages don't flash a logged-out state
+  const [user, setUser] = useState(readStoredUser);
+  const loading = false;
+
+  const logout = useCallback(() => {
+    setUser(null);
+    storeUser(null);
+  }, []);
+
+  // Sign out when the API reports the session is no longer valid
   useEffect(() => {
-    const userInfo = localStorage.getItem('userInfo');
-    if (userInfo) {
-      setUser(JSON.parse(userInfo));
-    }
-    setLoading(false);
+    window.addEventListener('auth:expired', logout);
+    return () => window.removeEventListener('auth:expired', logout);
+  }, [logout]);
+
+  // Refresh profile details (avatar, shelves) saved from an earlier visit
+  useEffect(() => {
+    if (!readStoredUser()) return;
+    api.get('/api/auth/profile')
+      .then(({ data }) => {
+        setUser(prev => {
+          if (!prev) return prev;
+          const next = { ...prev, ...data };
+          storeUser(next);
+          return next;
+        });
+      })
+      .catch(() => {
+        // 401s are handled by the auth:expired event; ignore network errors
+      });
   }, []);
 
   const login = async (email, password) => {
     try {
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
+      const { data } = await api.post('/api/auth/login', { email, password });
       setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      storeUser(data);
       return data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+      throw new Error(errorMessage(error, 'Login failed'));
     }
   };
 
   const register = async (name, email, password) => {
     try {
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, { name, email, password });
+      const { data } = await api.post('/api/auth/register', { name, email, password });
       setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      storeUser(data);
       return data;
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Registration failed');
+      throw new Error(errorMessage(error, 'Registration failed'));
     }
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('userInfo');
   };
 
   const updateUser = (userData) => {
     setUser(userData);
-    localStorage.setItem('userInfo', JSON.stringify(userData));
+    storeUser(userData);
   };
 
   return (

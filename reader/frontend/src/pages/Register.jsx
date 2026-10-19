@@ -1,9 +1,11 @@
+import usePageTitle from '../hooks/usePageTitle';
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import './Auth.css';
 
 const Register = () => {
+  usePageTitle('Create account');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -1,6 +1,8 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import React, { useContext, useState, useEffect, useRef } from 'react';
+import { coverUrl } from '../utils/covers';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Moon, Sun, Menu, X, Search as SearchIcon } from 'lucide-react';
+import api, { assetUrl } from '../api/client';
 import { AuthContext } from '../contexts/AuthContext';
 import { FALLBACK_IMAGE } from '../assets/fallbackImage';
 import './Navbar.css';
@@ -12,141 +14,215 @@ const Navbar = ({ toggleTheme, theme }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [liveResults, setLiveResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(false);
-  
+  const searchRef = useRef(null);
+
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
+  // Close menus whenever the route changes
   useEffect(() => {
+    setMenuOpen(false);
+    setDropdownOpen(false);
+  }, [location.pathname]);
+
+  // Lock page scroll behind the full-screen mobile menu
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
+
+  // Debounced typeahead; stale responses are ignored. Search is members-only, so
+  // signed-out visitors get no suggestions (submitting shows a sign-in prompt).
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 3 || !user) {
+      setLiveResults([]);
+      setIsSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setIsSearching(true);
     const timeoutId = setTimeout(async () => {
-      if (searchQuery.trim().length > 2) {
-        setIsSearching(true);
-        try {
-          const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/livesearch?query=${encodeURIComponent(searchQuery)}`);
+      try {
+        const { data } = await api.get('/api/books/livesearch', { params: { query: q } });
+        if (!cancelled) {
           setLiveResults(data);
-        } catch (e) {
-          console.error(e);
+          setHighlighted(-1);
         }
-        setIsSearching(false);
-      } else {
-        setLiveResults([]);
+      } catch {
+        if (!cancelled) setLiveResults([]);
       }
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+      if (!cancelled) setIsSearching(false);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [searchQuery, user]);
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) setDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
-    setMenuOpen(false);
+  };
+
+  const openBook = (book) => {
+    navigate(`/books/${book._id}`);
+    setSearchQuery('');
+    setLiveResults([]);
+    setDropdownOpen(false);
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
+    if (highlighted >= 0 && liveResults[highlighted]) {
+      openBook(liveResults[highlighted]);
+      return;
+    }
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
       setLiveResults([]);
-      setMenuOpen(false);
+      setDropdownOpen(false);
     }
   };
 
-  const SunIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-  );
+  const onSearchKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setDropdownOpen(false);
+      return;
+    }
+    if (!liveResults.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setDropdownOpen(true);
+      setHighlighted(i => (i + 1) % liveResults.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlighted(i => (i <= 0 ? liveResults.length - 1 : i - 1));
+    }
+  };
 
-  const MoonIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-    </svg>
-  );
+  const showDropdown = dropdownOpen && searchQuery.trim().length >= 3;
+  const navClass = ({ isActive }) => `nav-link ${isActive ? 'active' : ''}`;
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" aria-label="Main">
       <div className="container nav-container">
-        <Link to="/" className="nav-brand" onClick={() => setMenuOpen(false)}>READER</Link>
-        
-        <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
-          {menuOpen ? '✕' : '☰'}
+        <Link to="/" className="nav-brand">READER</Link>
+
+        <button
+          className="hamburger"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? <X size={26} /> : <Menu size={26} />}
         </button>
-        
+
         <div className={`nav-links-wrapper ${menuOpen ? 'open' : ''}`}>
           {!isAuthPage && (
             <div className="nav-center-links">
-              <Link to="/" className="nav-link" onClick={() => setMenuOpen(false)}>Home</Link>
-              <Link to="/clubs" className="nav-link" onClick={() => setMenuOpen(false)}>Book Clubs</Link>
-              {user && <Link to="/profile" className="nav-link" onClick={() => setMenuOpen(false)}>My Books</Link>}
+              <NavLink to="/" end className={navClass}>Home</NavLink>
+              <NavLink to="/discover" className={navClass}>Swipe</NavLink>
+              <NavLink to="/tags" className={navClass}>Tropes</NavLink>
+              <NavLink to="/clubs" className={navClass}>Book Clubs</NavLink>
+              {user && <NavLink to="/profile" className={navClass}>My Books</NavLink>}
             </div>
           )}
 
           <div className="nav-right" style={isAuthPage ? { marginLeft: 'auto' } : {}}>
             {!isAuthPage && (
-              <div className="nav-search-container" style={{ position: 'relative' }}>
-                <form onSubmit={handleSearch} className="nav-search-form">
-                  <input 
-                    type="text" 
-                    placeholder="Search books or authors..." 
+              <div className="nav-search-container" ref={searchRef}>
+                <form onSubmit={handleSearch} className="nav-search-form" role="search">
+                  <SearchIcon size={16} className="nav-search-icon" aria-hidden="true" />
+                  <input
+                    type="search"
+                    placeholder="Search books or authors…"
+                    aria-label="Search books or authors"
+                    aria-expanded={showDropdown}
+                    aria-controls="live-search-results"
+                    autoComplete="off"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => { setSearchQuery(e.target.value); setDropdownOpen(true); }}
+                    onFocus={() => setDropdownOpen(true)}
+                    onKeyDown={onSearchKeyDown}
                     className="input-field nav-search-input"
                   />
                 </form>
-                {searchQuery.trim().length > 2 && (
-                  <div className="live-search-dropdown" style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, 
-                    background: 'var(--bg-app)', border: '1px solid var(--border-color)', 
-                    borderRadius: '8px', marginTop: '0.5rem', zIndex: 100, 
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden'
-                  }}>
-                    {isSearching ? <div style={{padding: '1rem', color: 'var(--text-muted)'}}>Searching...</div> : (
-                      liveResults.length > 0 ? liveResults.map(b => (
-                        <div key={b._id} 
-                          onClick={() => { navigate(`/books/${b._id}`); setSearchQuery(''); setLiveResults([]); setMenuOpen(false); }}
-                          style={{
-                            padding: '0.75rem 1rem', cursor: 'pointer', display: 'flex', gap: '0.75rem', alignItems: 'center', borderBottom: '1px solid var(--border-color)'
-                          }}
-                        >
-                          <img 
-                            src={b.coverImage || FALLBACK_IMAGE} 
-                            alt="Cover" 
-                            style={{width: '32px', height: '48px', objectFit: 'cover', borderRadius: '4px'}} 
-                            onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
-                          />
-                          <div>
-                            <div style={{fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>{b.title}</div>
-                            <div style={{fontSize: '0.75rem', color: 'var(--text-muted)'}}>{b.author}</div>
-                          </div>
-                        </div>
-                      )) : <div style={{padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem'}}>No exact local matches. Press Enter to search globally.</div>
+                {showDropdown && (
+                  <div className="live-search-dropdown" id="live-search-results" role="listbox">
+                    {!user ? (
+                      <div className="live-search-status"><Link to="/login">Log in</Link> to search books.</div>
+                    ) : isSearching && liveResults.length === 0 ? (
+                      <div className="live-search-status">Searching…</div>
+                    ) : liveResults.length > 0 ? (
+                      <>
+                        {liveResults.map((b, i) => (
+                          <button
+                            key={b._id}
+                            type="button"
+                            role="option"
+                            aria-selected={highlighted === i}
+                            className={`live-search-item ${highlighted === i ? 'highlighted' : ''}`}
+                            onMouseEnter={() => setHighlighted(i)}
+                            onClick={() => openBook(b)}
+                          >
+                            <img
+                              src={coverUrl(b.coverImage, 'S')}
+                              alt=""
+                              width="32"
+                              height="48"
+                              loading="lazy"
+                              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+                            />
+                            <span>
+                              <span className="live-search-title">{b.title}</span>
+                              <span className="live-search-author">{b.author}</span>
+                            </span>
+                          </button>
+                        ))}
+                        <button type="button" className="live-search-all" onClick={handleSearch}>
+                          See all results for “{searchQuery.trim()}”
+                        </button>
+                      </>
+                    ) : (
+                      <div className="live-search-status">No quick matches. Press Enter to search everywhere.</div>
                     )}
                   </div>
                 )}
               </div>
             )}
-            
-            <button onClick={toggleTheme} className="theme-toggle-icon" aria-label="Toggle theme">
-              {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+
+            <button onClick={toggleTheme} className="theme-toggle-icon" aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </button>
 
             {user ? (
-              <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <Link to="/profile" className="nav-link profile-link" onClick={() => setMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="user-menu">
+                <Link to="/profile" className="nav-link profile-link">
                   {user.avatar ? (
-                    <img src={`${import.meta.env.VITE_API_URL}${user.avatar}`} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                    <img src={assetUrl(user.avatar)} alt="" className="nav-avatar" />
                   ) : (
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--brand-color)', color: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
+                    <span className="nav-avatar nav-avatar-initial">{user.name.charAt(0).toUpperCase()}</span>
                   )}
-                  <span className="profile-name">Profile</span>
+                  <span className="profile-name">{user.name.split(' ')[0]}</span>
                 </Link>
-                <button onClick={handleLogout} className="btn-logout">Logout</button>
+                <button onClick={handleLogout} className="btn-logout">Log out</button>
               </div>
             ) : (
               <div className="user-menu">
-                <Link to="/login" className="nav-link" onClick={() => setMenuOpen(false)}>Login</Link>
-                <Link to="/register" className="btn-primary nav-btn-signup" onClick={() => setMenuOpen(false)}>Sign Up</Link>
+                <Link to="/login" className="nav-link">Log in</Link>
+                <Link to="/register" className="btn-primary nav-btn-signup">Sign up</Link>
               </div>
             )}
           </div>

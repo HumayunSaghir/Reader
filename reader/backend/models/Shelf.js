@@ -12,4 +12,7 @@ const shelfSchema = new mongoose.Schema({
   customShelves: [{ type: String }]
 }, { timestamps: true });
 
+shelfSchema.index({ user: 1, book: 1 });
+shelfSchema.index({ user: 1, status: 1 });
+
 module.exports = mongoose.model('Shelf', shelfSchema);

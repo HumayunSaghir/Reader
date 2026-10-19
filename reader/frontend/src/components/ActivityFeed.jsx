@@ -1,17 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useContext } from 'react';
+import { coverUrl } from '../utils/covers';
+import api, { assetUrl } from '../api/client';
 import { Link } from 'react-router-dom';
 import { FALLBACK_IMAGE } from '../assets/fallbackImage';
+import { AuthContext } from '../contexts/AuthContext';
+import SignInPrompt from './SignInPrompt';
 import './ActivityFeed.css';
 
 const ActivityFeed = () => {
+  const { user } = useContext(AuthContext);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // The feed is members-only on the API
+    if (!user) return;
+    setLoading(true);
     const fetchActivities = async () => {
       try {
-        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/activities`);
+        const { data } = await api.get(`/api/activities`);
         setActivities(data);
         setLoading(false);
       } catch (error) {
@@ -20,7 +27,7 @@ const ActivityFeed = () => {
       }
     };
     fetchActivities();
-  }, []);
+  }, [user]);
 
   const formatTime = (dateString) => {
     const date = new Date(dateString);
@@ -39,6 +46,10 @@ const ActivityFeed = () => {
     
     return date.toLocaleDateString();
   };
+
+  if (!user) {
+    return <SignInPrompt message="See what other readers are shelving and reviewing." />;
+  }
 
   if (loading) {
     return (
@@ -60,7 +71,7 @@ const ActivityFeed = () => {
             <div className="user-info">
               <div className="avatar small">
                 {activity.user?.avatar ? (
-                  <img src={`${import.meta.env.VITE_API_URL}${activity.user.avatar}`} alt="Avatar" />
+                  <img src={assetUrl(activity.user.avatar)} alt="Avatar" />
                 ) : (
                   activity.user?.name?.charAt(0).toUpperCase()
                 )}
@@ -92,7 +103,7 @@ const ActivityFeed = () => {
             {activity.book && (
               <Link to={`/books/${activity.book._id}`} className="activity-book-card">
                 <img 
-                  src={activity.book.coverImage ? activity.book.coverImage.replace('-S.jpg', '-M.jpg') : FALLBACK_IMAGE} 
+                  src={coverUrl(activity.book.coverImage, 'M')} 
                   alt={activity.book.title}
                   onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
                 />

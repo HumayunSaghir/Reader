@@ -1,12 +1,16 @@
+import usePageTitle from '../hooks/usePageTitle';
+import { coverUrl } from '../utils/covers';
 import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '../api/client';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { Users, Plus, Search, Trash2 } from 'lucide-react';
 import { FALLBACK_IMAGE } from '../assets/fallbackImage';
+import SignInPrompt from '../components/SignInPrompt';
 import './Clubs.css';
 
 const Clubs = () => {
+  usePageTitle('Book clubs');
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -24,8 +28,9 @@ const Clubs = () => {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    fetchClubs();
-  }, []);
+    // Clubs are members-only on the API
+    if (user) fetchClubs();
+  }, [user]);
 
   // Live suggestions debounced as user types
   useEffect(() => {
@@ -39,7 +44,7 @@ const Clubs = () => {
       setSearching(true);
       try {
         const query = searchQuery.trim();
-        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/livesearch?query=${encodeURIComponent(query)}`);
+        const { data } = await api.get(`/api/books/livesearch?query=${encodeURIComponent(query)}`);
         setSearchResults(data || []);
       } catch (error) {
         console.error('Book search error:', error);
@@ -53,7 +58,7 @@ const Clubs = () => {
 
   const fetchClubs = async () => {
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/clubs`);
+      const { data } = await api.get(`/api/clubs`);
       setClubs(data);
       setLoading(false);
     } catch (error) {
@@ -70,7 +75,7 @@ const Clubs = () => {
     }
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/clubs/${clubToDelete._id}`, config);
+      await api.delete(`/api/clubs/${clubToDelete._id}`, config);
       setClubs(prev => prev.filter(c => c._id !== clubToDelete._id));
     } catch (error) {
       console.error('Failed to delete club:', error);
@@ -83,7 +88,7 @@ const Clubs = () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/livesearch?query=${encodeURIComponent(searchQuery.trim())}`);
+      const { data } = await api.get(`/api/books/livesearch?query=${encodeURIComponent(searchQuery.trim())}`);
       setSearchResults(data || []);
     } catch (error) {
       console.error(error);
@@ -100,7 +105,7 @@ const Clubs = () => {
 
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/clubs`, {
+      const { data } = await api.post(`/api/clubs`, {
         name: clubName,
         description: clubDesc,
         bookId: selectedBook._id,
@@ -114,6 +119,10 @@ const Clubs = () => {
       setCreating(false);
     }
   };
+
+  if (!user) {
+    return <SignInPrompt message="Join a club to read together, track progress and chat without spoilers." />;
+  }
 
   if (loading) {
     return <div className="loading" style={{ padding: '4rem 0' }}><div className="spinner"></div></div>;
@@ -165,7 +174,7 @@ const Clubs = () => {
               <label>Select a Book to Read</label>
               {selectedBook ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--bg-app)', borderRadius: '8px', border: '1px solid #10B981' }}>
-                  <img src={selectedBook.coverImage ? selectedBook.coverImage.replace('-L.jpg', '-S.jpg').replace('-M.jpg', '-S.jpg') : FALLBACK_IMAGE} alt="Cover" style={{ height: '60px', width: '40px', objectFit: 'cover', borderRadius: '4px' }} onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }} />
+                  <img src={coverUrl(selectedBook.coverImage, 'S')} alt="Cover" style={{ height: '60px', width: '40px', objectFit: 'cover', borderRadius: '4px' }} onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedBook.title}</strong>
                     <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{selectedBook.author}</span>
@@ -198,7 +207,7 @@ const Clubs = () => {
                           className="search-result-hover"
                         >
                           <img 
-                            src={book.coverImage ? book.coverImage.replace('-L.jpg', '-S.jpg').replace('-M.jpg', '-S.jpg') : FALLBACK_IMAGE} 
+                            src={coverUrl(book.coverImage, 'S')} 
                             alt="Cover" 
                             style={{ height: '48px', width: '32px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }} 
                             onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
@@ -240,7 +249,7 @@ const Clubs = () => {
           return (
             <Link to={`/clubs/${club._id}`} key={club._id} className="club-card glass-panel" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: '1rem', transition: 'transform 0.2s', padding: '1.5rem', position: 'relative' }}>
               <img 
-                src={club.book?.coverImage ? club.book.coverImage.replace('-L.jpg', '-M.jpg') : FALLBACK_IMAGE} 
+                src={coverUrl(club.book?.coverImage, 'M')} 
                 alt={club.book?.title} 
                 style={{ width: '80px', height: '120px', objectFit: 'cover', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} 
                 onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}

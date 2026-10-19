@@ -1,6 +1,7 @@
+/* Shared hero styles (also used by Discover and Tags) */
 .hero-minimal {
   text-align: center;
-  padding: 5rem 0 4rem 0;
+  padding: 2.5rem 0 2.5rem 0;
   max-width: 800px;
   margin: 0 auto;
 }
@@ -14,43 +15,159 @@
   letter-spacing: 2px;
   padding: 0.4rem 0.8rem;
   border-radius: 4px;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   text-transform: uppercase;
 }
 
 .hero-minimal h1 {
-  font-size: 4rem;
+  font-size: clamp(2rem, 5vw, 3rem);
   line-height: 1.1;
-  letter-spacing: -1.5px;
-  margin-bottom: 1.5rem;
+  letter-spacing: -1px;
+  margin-bottom: 1rem;
 }
 
 .hero-subtext {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   color: var(--text-muted);
   line-height: 1.6;
   max-width: 600px;
   margin: 0 auto;
 }
 
-.niches-container {
+/* Home hero */
+.home-hero {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 0 2.5rem;
+}
+
+.home-hero h1 {
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  margin-bottom: 0.9rem;
+}
+
+.home-hero-sub {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 560px;
+  margin: 0 auto 1.75rem;
+}
+
+.home-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0.35rem 0.35rem 0.35rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-app);
+  box-shadow: var(--shadow-md);
+  color: var(--text-muted);
+}
+
+.home-search:focus-within {
+  border-color: var(--text-main);
+}
+
+.home-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 1rem;
+  padding: 0.6rem 0.25rem;
+  outline: none;
+}
+
+.home-search input:focus-visible {
+  box-shadow: none;
+}
+
+.home-search .btn-primary {
+  border-radius: 999px;
+  padding: 0.65rem 1.4rem;
+}
+
+.home-hero-links {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 4rem;
-  padding-bottom: 4rem;
+  gap: 0.5rem 1.5rem;
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.home-hero-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+}
+
+.home-hero-links a:hover {
+  color: var(--text-main);
+}
+
+/* Tabs */
+.home-tabs {
+  display: flex;
+  gap: 1.5rem;
   border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+}
+
+.home-tabs button {
+  background: none;
+  padding: 0.75rem 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.home-tabs button:hover {
+  color: var(--text-main);
+}
+
+.home-tabs button.active {
+  color: var(--text-main);
+  border-bottom-color: var(--text-main);
+}
+
+/* Genre pills: one scrollable row instead of wrapping onto many lines */
+.niches-scroller {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.75rem;
+  scrollbar-width: none;
+  mask-image: linear-gradient(90deg, #000 92%, transparent);
+}
+
+.niches-scroller::-webkit-scrollbar {
+  display: none;
 }
 
 .niche-pill {
-  padding: 0.5rem 1.25rem;
-  border-radius: 4px;
+  flex: 0 0 auto;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border-color);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: all 0.2s;
 }
 
@@ -60,50 +177,57 @@
 }
 
 .niche-pill.active {
-  background: var(--bg-accent);
-  color: var(--text-main);
-  border-color: var(--bg-accent);
+  background: var(--text-main);
+  color: var(--bg-app);
+  border-color: var(--text-main);
 }
 
+/* Legacy grid class still used by Search/Tags */
 .books-showcase {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 2rem 1.5rem;
 }
 
-.loading {
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-muted);
+.load-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 3rem;
 }
 
-@media (max-width: 768px) {
-  .hero-minimal {
-    padding: 3rem 0 3rem 0;
-  }
-  .hero-minimal h1 {
-    font-size: 2.5rem;
-    letter-spacing: -1px;
-  }
-  .hero-subtext {
-    font-size: 1rem;
-  }
-  .books-showcase {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-  }
-  .niches-container {
-    gap: 0.5rem;
-  }
-  .niche-pill {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-  }
+.load-more .btn-secondary {
+  min-width: 200px;
 }
+
+.load-more-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
 
 @media (max-width: 600px) {
+  .home-hero {
+    padding: 1rem 0 1.75rem;
+    text-align: left;
+  }
+
+  .home-hero-sub {
+    margin-left: 0;
+    font-size: 0.95rem;
+  }
+
+  .home-search .btn-primary {
+    padding: 0.6rem 1rem;
+  }
+
+  .home-hero-links {
+    justify-content: flex-start;
+  }
+
   .books-showcase {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem 0.75rem;
   }
 }

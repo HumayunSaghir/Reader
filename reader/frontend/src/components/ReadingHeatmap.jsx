@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../api/client';
 import { Flame, Trophy, Calendar, Check, BookOpen, Sparkles } from 'lucide-react';
 import './ReadingHeatmap.css';
 
@@ -22,7 +22,7 @@ const ReadingHeatmap = ({ user }) => {
     try {
       const todayStr = new Date().toISOString().split('T')[0];
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/reading/activity?today=${todayStr}`, config);
+      const { data } = await api.get(`/api/reading/activity?today=${todayStr}`, config);
       setActivityData(data);
     } catch (error) {
       console.error('Failed to load reading activity:', error);
@@ -37,7 +37,7 @@ const ReadingHeatmap = ({ user }) => {
     try {
       const todayStr = new Date().toISOString().split('T')[0];
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/reading/log`, { date: todayStr }, config);
+      const { data } = await api.post(`/api/reading/log`, { date: todayStr }, config);
       setActivityData(prev => ({
         ...prev,
         activityMap: data.activityMap,

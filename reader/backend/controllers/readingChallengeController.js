@@ -1,3 +1,4 @@
+const { sendError } = require('../middlewares/errorHandler');
 const ReadingChallenge = require('../models/ReadingChallenge');
 const Shelf = require('../models/Shelf');
 const Book = require('../models/Book');
@@ -134,6 +135,7 @@ const getChallengeData = async (req, res) => {
       author: s.book.author,
       coverImage: s.book.coverImage,
       genres: s.book.genres || [],
+      pageCount: s.book.pageCount || null,
       averageRating: s.book.averageRating || 0,
       readAt: s.readAt || s.updatedAt || s.createdAt
     }));
@@ -233,8 +235,8 @@ const getChallengeData = async (req, res) => {
     });
     const { longestStreak, totalDaysActive } = calculateYearlyStreaks(yearlyLogs);
 
-    // Estimated pages (default ~300 pages per book)
-    const estimatedPages = completedCount * 300;
+    // Real page counts where the catalogue has them, ~300 pages otherwise
+    const estimatedPages = readBooks.reduce((sum, b) => sum + (b.pageCount || 300), 0);
 
     // User details for wrapped card
     const user = await User.findById(userId).select('name avatar');
@@ -265,7 +267,7 @@ const getChallengeData = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching challenge data:', error);
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -291,7 +293,7 @@ const setChallengeTarget = async (req, res) => {
     return getChallengeData(req, res);
   } catch (error) {
     console.error('Error setting challenge target:', error);
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 

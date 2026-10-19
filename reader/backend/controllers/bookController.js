@@ -1,202 +1,177 @@
+const mongoose = require('mongoose');
 const Book = require('../models/Book');
 const Shelf = require('../models/Shelf');
 const Activity = require('../models/Activity');
-const { recordReadingActivity } = require('./readingLogController');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Review = require('../models/Review');
+const bookSource = require('../services/bookSource');
+const catalog = require('../services/catalog');
+const ai = require('../services/ai');
+const { sendError, HttpError } = require('../middlewares/errorHandler');
 
-const fetchAndSaveFromOpenLibrary = async (query, maxResults = 10, page = 1) => {
-  const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=${maxResults}&page=${page}`;
-  const response = await fetch(url);
-  const data = await response.json();
-  
-  const savedBooks = [];
-  if (data.docs) {
-    for (let item of data.docs) {
-      if (!item.title || !item.author_name) continue;
-      
-      const isbn = (item.isbn && item.isbn.length > 0) ? item.isbn[0] : item.key;
-      const coverImage = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg` : 'https://via.placeholder.com/400x550?text=No+Cover';
-      
-      let book = await Book.findOne({ isbn });
-      if (!book) {
-        book = await Book.create({
-          title: item.title,
-          author: item.author_name.join(', '),
-          description: 'No description provided.',
-          coverImage: coverImage,
-          isbn: isbn,
-          publishedYear: item.first_publish_year || null,
-          genres: item.subject ? item.subject.slice(0, 3) : []
-        });
-      }
-      savedBooks.push(book);
-    }
-  }
-  return savedBooks;
+// Fields needed to render book cards; descriptions are large and loaded on demand
+const CARD_FIELDS = '_id title author coverImage genres publishedYear averageRating ratingsCount';
+const SHELF_STATUSES = ['want-to-read', 'currently-reading', 'read'];
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const { toCard, BROWSE_PAGE_SIZE, SEARCH_PAGE_SIZE } = catalog;
+
+const parsePage = (value) => Math.min(Math.max(parseInt(value, 10) || 1, 1), 50);
+
+const assertBookId = (id) => {
+  if (!mongoose.isValidObjectId(id)) throw new HttpError(404, 'Book not found');
 };
 
+// GET /api/books?category=fantasy&page=1 — popular books (trending when no category)
 const getBooks = async (req, res) => {
   try {
-    const { category, page = 1 } = req.query;
-    const queries = ['fiction', 'science', 'history', 'technology', 'fantasy', 'mystery', 'romance', 'thriller', 'programming', 'art'];
-    const randomQuery = category && category !== 'All' ? category : queries[Math.floor(Math.random() * queries.length)];
-    
-    const books = await fetchAndSaveFromOpenLibrary(randomQuery, 50, page);
-    
-    if (books.length === 0) {
-      const count = await Book.countDocuments();
-      if (count > 0) {
-        const randomDbBooks = await Book.aggregate([{ $sample: { size: 8 } }]);
-        return res.json(randomDbBooks);
-      }
+    const category = typeof req.query.category === 'string' && req.query.category !== 'All'
+      ? req.query.category.trim().toLowerCase().slice(0, 40)
+      : '';
+    const page = parsePage(req.query.page);
+
+    let books;
+    try {
+      books = await catalog.browse(category, page);
+      if (!books) throw new Error('No results from provider');
+    } catch (error) {
+      // Provider down and nothing cached: fall back to what we already have locally
+      console.error('Browse provider failed:', error.message);
+      const match = { coverImage: { $type: 'string' } };
+      if (category) match.genres = { $regex: escapeRegex(category), $options: 'i' };
+      books = (await Book.aggregate([{ $match: match }, { $sample: { size: BROWSE_PAGE_SIZE } }])).map(toCard);
     }
+
+    res.set('Cache-Control', 'public, max-age=300');
     res.json(books);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
+// GET /api/books/search?query=homo deus&page=1
 const searchBooks = async (req, res) => {
   try {
-    const { query } = req.query;
+    const query = typeof req.query.query === 'string' ? req.query.query.trim().slice(0, 120) : '';
     if (!query) return res.status(400).json({ message: 'Query is required' });
-    
-    const books = await fetchAndSaveFromOpenLibrary(query, 12);
+    const page = parsePage(req.query.page);
+
+    let books;
+    try {
+      books = await catalog.search(query, page);
+      if (!books) throw new Error('No results from provider');
+    } catch (error) {
+      console.error('Search provider failed:', error.message);
+      books = (await Book.find({ $text: { $search: query } }, { score: { $meta: 'textScore' } })
+        .sort({ score: { $meta: 'textScore' } })
+        .skip((page - 1) * SEARCH_PAGE_SIZE)
+        .limit(SEARCH_PAGE_SIZE)
+        .select(CARD_FIELDS)
+        .lean()).map(toCard);
+    }
+
+    res.set('Cache-Control', 'public, max-age=300');
     res.json(books);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
+const LIVE_EXTERNAL_WAIT_MS = 2500;
+
+// GET /api/books/livesearch?query=atomic — fast typeahead from the local catalogue
 const liveSearch = async (req, res) => {
   try {
-    const { query } = req.query;
-    if (!query) return res.json([]);
-    const cleanQuery = query.trim();
-    if (!cleanQuery) return res.json([]);
+    const query = typeof req.query.query === 'string' ? req.query.query.trim().slice(0, 80) : '';
+    if (query.length < 2) return res.json([]);
 
-    const regex = new RegExp(cleanQuery, 'i');
-    let books = await Book.find({
-      $or: [{ title: regex }, { author: regex }]
-    }).limit(10);
+    const findLocal = async () => {
+      const [textHits, prefixHits] = await Promise.all([
+        Book.find({ $text: { $search: query } }, { score: { $meta: 'textScore' } })
+          .sort({ score: { $meta: 'textScore' } }).limit(10).select(CARD_FIELDS).lean().maxTimeMS(2000),
+        Book.find({ title: { $regex: `^${escapeRegex(query)}`, $options: 'i' } })
+          .limit(6).select(CARD_FIELDS).lean().maxTimeMS(2000)
+      ]);
+      const seen = new Set();
+      return [...prefixHits, ...textHits].filter(b => !seen.has(b._id.toString()) && seen.add(b._id.toString()));
+    };
 
-    // If fewer than 4 books found and query is >= 3 chars, fetch from Open Library
-    if (books.length < 4 && cleanQuery.length >= 3) {
-      try {
-        const externalBooks = await fetchAndSaveFromOpenLibrary(cleanQuery, 6);
-        const existingIds = new Set(books.map(b => b._id.toString()));
-        for (const ext of externalBooks) {
-          if (!existingIds.has(ext._id.toString())) {
-            books.push(ext);
-            existingIds.add(ext._id.toString());
-          }
-        }
-      } catch (e) {
-        // Ignore external fetch error
+    let books = await findLocal();
+
+    // Few local matches: ask the providers (cached), but don't keep the user
+    // waiting. A slow lookup finishes in the background and populates the
+    // catalogue, so the next keystroke finds it locally.
+    if (books.length < 4 && query.length >= 3) {
+      const external = catalog.search(query, 1).then(r => r || []).catch(() => []);
+      const result = await Promise.race([external, new Promise(r => setTimeout(() => r(null), LIVE_EXTERNAL_WAIT_MS))]);
+      if (result) {
+        const seen = new Set(books.map(b => b._id.toString()));
+        books = [...books, ...result.filter(b => !seen.has(b._id.toString()))];
       }
     }
 
-    // Sort to prioritize titles starting with or containing query
-    const lowerQ = cleanQuery.toLowerCase();
-    books.sort((a, b) => {
-      const aTitle = (a.title || '').toLowerCase();
-      const bTitle = (b.title || '').toLowerCase();
-      
-      const aStarts = aTitle.startsWith(lowerQ);
-      const bStarts = bTitle.startsWith(lowerQ);
-      if (aStarts && !bStarts) return -1;
-      if (!aStarts && bStarts) return 1;
+    // Prefer titles that start with the query, then titles containing it
+    const q = query.toLowerCase();
+    const rankOf = (b) => {
+      const t = (b.title || '').toLowerCase();
+      if (t.startsWith(q)) return 0;
+      if (t.split(/\s+/).some(w => w.startsWith(q))) return 1;
+      if (t.includes(q)) return 2;
+      return 3;
+    };
+    books = books.map((b, i) => ({ b, i })).sort((x, y) => rankOf(x.b) - rankOf(y.b) || x.i - y.i).map(x => x.b);
 
-      const aWord = aTitle.split(/\s+/).some(w => w.startsWith(lowerQ));
-      const bWord = bTitle.split(/\s+/).some(w => w.startsWith(lowerQ));
-      if (aWord && !bWord) return -1;
-      if (!aWord && bWord) return 1;
-
-      const aIncludes = aTitle.includes(lowerQ);
-      const bIncludes = bTitle.includes(lowerQ);
-      if (aIncludes && !bIncludes) return -1;
-      if (!aIncludes && bIncludes) return 1;
-
-      return 0;
-    });
-
-    res.json(books.slice(0, 6));
+    res.json(books.slice(0, 6).map(toCard));
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
+// GET /api/books/:id — returns immediately; descriptions load via /:id/description
 const getBookById = async (req, res) => {
   try {
-    const book = await Book.findById(req.params.id);
-    if (!book) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-    
-    if (book.description === 'No description provided.') {
-      let descriptionFound = null;
-      
-      // 1. Google Books API
-      try {
-        let queryStr = book.isbn.startsWith('/works/') 
-           ? encodeURIComponent(book.title + ' ' + book.author) 
-           : `isbn:${book.isbn}`;
-        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${queryStr}&maxResults=1`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.items && data.items.length > 0 && data.items[0].volumeInfo.description) {
-            descriptionFound = data.items[0].volumeInfo.description;
-          }
-        }
-      } catch (e) {}
-
-      // 2. OpenLibrary Works API Fallback
-      if (!descriptionFound) {
-        try {
-          let workKey = book.isbn;
-          if (!workKey.startsWith('/works/')) {
-            const res = await fetch(`https://openlibrary.org/isbn/${book.isbn}.json`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.works && data.works.length > 0) {
-                workKey = data.works[0].key;
-              }
-            }
-          }
-          if (workKey.startsWith('/works/')) {
-            const res = await fetch(`https://openlibrary.org${workKey}.json`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.description) {
-                descriptionFound = typeof data.description === 'string' ? data.description : data.description.value;
-              }
-            }
-          }
-        } catch(e) {}
-      }
-      
-      // 3. Generic Fallback
-      if (!descriptionFound) {
-        descriptionFound = `A fascinating book titled "${book.title}" written by the renowned author ${book.author}. A highly recommended read that delves into intriguing concepts and stories.`;
-      }
-      
-      book.description = descriptionFound;
-      await book.save();
-    }
-    
+    assertBookId(req.params.id);
+    const book = await Book.findById(req.params.id).select('-__v').lean();
+    if (!book) return res.status(404).json({ message: 'Book not found' });
+    if (book.description && bookSource.LEGACY_PLACEHOLDER.test(book.description)) book.description = '';
     res.json(book);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
+// GET /api/books/:id/description — fetched from the providers once, then stored
+const getBookDescription = async (req, res) => {
+  try {
+    assertBookId(req.params.id);
+    const book = await Book.findById(req.params.id).select('title author isbn sourceKey editionKey description descriptionFetchedAt').lean();
+    if (!book) return res.status(404).json({ message: 'Book not found' });
+    const description = await bookSource.ensureDescription(book);
+    res.json({ description: description || '' });
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
+// POST /api/books — manually add a book (only whitelisted fields)
 const addBook = async (req, res) => {
   try {
-    const book = new Book(req.body);
-    const createdBook = await book.save();
-    res.status(201).json(createdBook);
+    const { title, author, description, coverImage, isbn, publishedYear, genres } = req.body;
+    if (typeof title !== 'string' || !title.trim() || typeof author !== 'string' || !author.trim()) {
+      return res.status(400).json({ message: 'Title and author are required' });
+    }
+    const book = await Book.create({
+      title: title.trim().slice(0, 300),
+      author: author.trim().slice(0, 200),
+      description: typeof description === 'string' ? description.slice(0, 10000) : undefined,
+      coverImage: typeof coverImage === 'string' && /^https:\/\//.test(coverImage) ? coverImage : undefined,
+      isbn: typeof isbn === 'string' ? isbn.slice(0, 20) : undefined,
+      publishedYear: Number.isInteger(publishedYear) ? publishedYear : undefined,
+      genres: Array.isArray(genres) ? genres.filter(g => typeof g === 'string').slice(0, 10).map(g => g.slice(0, 40)) : []
+    });
+    res.status(201).json(book);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -206,144 +181,134 @@ const updateShelf = async (req, res) => {
   const userId = req.user._id;
 
   try {
+    assertBookId(bookId);
+    if (status !== undefined && status !== null && !SHELF_STATUSES.includes(status)) {
+      return res.status(400).json({ message: 'Invalid shelf status' });
+    }
+    if (customShelf !== undefined) {
+      if (typeof customShelf !== 'string' || !['add', 'remove'].includes(action)) {
+        return res.status(400).json({ message: 'Invalid custom shelf update' });
+      }
+      if (action === 'add' && !(req.user.customShelves || []).includes(customShelf)) {
+        return res.status(400).json({ message: 'Create the shelf on your profile first' });
+      }
+    }
+    if (!(await Book.exists({ _id: bookId }))) return res.status(404).json({ message: 'Book not found' });
+
     let shelf = await Shelf.findOne({ user: userId, book: bookId });
     if (!shelf) {
       shelf = new Shelf({ user: userId, book: bookId });
     }
-    
+
     if (status !== undefined) {
       if (shelf.status !== status) {
-        shelf.status = status;
-        if (status === 'read') {
-          shelf.readAt = new Date();
-        } else {
-          shelf.readAt = null;
-        }
+        shelf.status = status || undefined;
+        shelf.readAt = status === 'read' ? new Date() : null;
         if (status) {
           await Activity.create({ user: userId, book: bookId, type: 'shelf_status', status });
         }
       }
     }
-    
+
     if (customShelf) {
       if (action === 'add') {
         if (!shelf.customShelves.includes(customShelf)) {
           shelf.customShelves.push(customShelf);
           await Activity.create({ user: userId, book: bookId, type: 'shelf_custom', customShelf });
         }
-      } else if (action === 'remove') {
+      } else {
         shelf.customShelves = shelf.customShelves.filter(s => s !== customShelf);
       }
     }
-    
+
     if (!shelf.status && shelf.customShelves.length === 0) {
-      if (shelf._id) await Shelf.findByIdAndDelete(shelf._id);
+      if (!shelf.isNew) await Shelf.deleteOne({ _id: shelf._id });
       return res.json({ message: 'Removed from all shelves' });
     }
-    
+
     await shelf.save();
     res.json(shelf);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
 const getUserShelves = async (req, res) => {
   try {
-    const shelves = await Shelf.find({ user: req.user._id }).populate('book');
-    res.json(shelves);
+    const shelves = await Shelf.find({ user: req.user._id })
+      .populate('book', `${CARD_FIELDS} pageCount`)
+      .sort({ updatedAt: -1 })
+      .lean();
+    res.json(shelves.filter(s => s.book));
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
+  }
+};
+
+// GET /api/books/:id/shelf — the current user's shelf entry for one book
+const getMyShelfForBook = async (req, res) => {
+  try {
+    assertBookId(req.params.id);
+    const shelf = await Shelf.findOne({ user: req.user._id, book: req.params.id }).select('status customShelves readAt').lean();
+    res.json(shelf || { status: null, customShelves: [] });
+  } catch (error) {
+    sendError(res, error);
   }
 };
 
 const removeShelf = async (req, res) => {
-  const bookId = req.params.id;
-  const userId = req.user._id;
   try {
-    await Shelf.findOneAndDelete({ user: userId, book: bookId });
+    assertBookId(req.params.id);
+    await Shelf.findOneAndDelete({ user: req.user._id, book: req.params.id });
     res.json({ message: 'Book removed from shelf' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
 const chatWithBook = async (req, res) => {
   try {
-    const book = await Book.findById(req.params.id);
-    if (!book) return res.status(404).json({ message: 'Book not found' });
-    
+    assertBookId(req.params.id);
     const { message, history } = req.body;
-    if (!message) return res.status(400).json({ message: 'Message is required' });
-
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ message: 'GEMINI_API_KEY is missing in backend .env file.' });
+    if (typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ message: 'Message is required' });
     }
+    if (message.length > ai.MAX_MESSAGE_CHARS) {
+      return res.status(400).json({ message: `Messages are limited to ${ai.MAX_MESSAGE_CHARS} characters` });
+    }
+    const book = await Book.findById(req.params.id).lean();
+    if (!book) return res.status(404).json({ message: 'Book not found' });
+    book.description = await bookSource.ensureDescription(book).catch(() => book.description);
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
-
-    const systemContext = `You are a helpful and knowledgeable AI "Book Sommelier" for a reading tracking app. 
-You are currently discussing the book "${book.title}" by ${book.author}. 
-Here is a brief description of the book for context: "${book.description}". 
-Answer the user's questions about this book politely, accurately, and without giving away major spoilers unless explicitly asked.`;
-
-    const chatHistory = history ? history.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }]
-    })) : [];
-
-    const chat = model.startChat({
-      history: [
-        { role: 'user', parts: [{ text: systemContext + "\n\nDo you understand your role?" }] },
-        { role: 'model', parts: [{ text: "Yes, I understand! I am ready to answer any questions about the book." }] },
-        ...chatHistory
-      ]
-    });
-
-    console.log("Sending message to AI...");
-    const result = await chat.sendMessage(message);
-    console.log("Got result from AI:", result != null);
-    const response = await result.response;
-    console.log("Got response:", response != null);
-    const text = response.text();
-    console.log("Got text:", text.length > 0);
-
-    res.json({ reply: text });
+    const reply = await ai.chatAboutBook(book, message.trim(), history);
+    res.json({ reply });
   } catch (error) {
-    console.error('Chat AI Error Stack:', error.stack || error);
-    require('fs').appendFileSync('ai_error.log', new Date().toISOString() + '\\n' + (error.stack || error) + '\\n\\n');
-    res.status(500).json({ message: error.message || 'Failed to generate AI response' });
+    sendError(res, error);
   }
 };
 
 const getRecommendation = async (req, res) => {
   try {
-    const book = await Book.findById(req.params.id);
+    assertBookId(req.params.id);
+    const book = await Book.findById(req.params.id).lean();
     if (!book) return res.status(404).json({ message: 'Book not found' });
-    
-    const Review = require('../models/Review');
-    const userReviews = await Review.find({ user: req.user._id, rating: 5 }).populate('book');
-    const favoriteBooks = userReviews.filter(r => r.book).map(r => r.book.title).join(', ');
+    book.description = await bookSource.ensureDescription(book).catch(() => book.description);
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+    const favorites = await Review.find({ user: req.user._id, rating: 5, book: { $ne: book._id } })
+      .sort({ updatedAt: -1 })
+      .limit(20)
+      .populate('book', 'title author')
+      .lean();
+    const favoriteTitles = favorites.filter(r => r.book).map(r => `${r.book.title} by ${r.book.author}`).sort();
 
-    let prompt = `You are an AI book recommender. The user is considering reading "${book.title}" by ${book.author} (Genres: ${book.genres.join(', ')}). Description: ${book.description}. `;
-    if (favoriteBooks.length > 0) {
-      prompt += `The user has previously rated these books 5 stars: ${favoriteBooks}. Based on this, give a recommendation percentage (0-100%) and a short 2-3 sentence explanation of why they would or wouldn't like it.`;
-    } else {
-      prompt += `The user has not rated any books 5 stars yet. Based on the book's general appeal, give a recommendation percentage (0-100%) and a short 2-3 sentence explanation of who would enjoy this book.`;
-    }
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    res.json({ recommendation: text });
+    const recommendation = await ai.recommendBook(book, favoriteTitles);
+    res.json({ recommendation });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
-module.exports = { getBooks, searchBooks, getBookById, addBook, updateShelf, getUserShelves, removeShelf, liveSearch, chatWithBook, getRecommendation };
+module.exports = {
+  getBooks, searchBooks, getBookById, getBookDescription, addBook, updateShelf, getUserShelves,
+  getMyShelfForBook, removeShelf, liveSearch, chatWithBook, getRecommendation, CARD_FIELDS, toCard
+};

@@ -1,41 +1,57 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import './BookCard.css';
-import { FALLBACK_IMAGE } from '../assets/fallbackImage';
+import { coverUrl, coverSrcSet, onCoverError } from '../utils/covers';
 
-const BookCard = ({ book, bgColor, categoryColor }) => {
-  const highResImage = book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg').replace('-M.jpg', '-L.jpg') : FALLBACK_IMAGE;
+export const coverSrc = (url) => coverUrl(url, 'L');
 
+const BookCard = ({ book, eager = false }) => {
+  const genre = book.genres?.[0];
   return (
-    <Link to={`/books/${book._id}`} className="book-card-container">
-      <div className="book-card-block" style={{ backgroundColor: bgColor }}>
-        <div className="book-cover-wrapper">
-          <img 
-            src={highResImage} 
-            alt={book.title} 
-            className="book-cover-img" 
-            loading="lazy" 
-            onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
-          />
-        </div>
+    <Link to={`/books/${book._id}`} className="book-card" title={`${book.title} by ${book.author}`}>
+      <div className="book-card-cover">
+        <img
+          src={coverUrl(book.coverImage, 'M')}
+          srcSet={coverSrcSet(book.coverImage)}
+          alt=""
+          width="200"
+          height="300"
+          loading={eager ? 'eager' : 'lazy'}
+          decoding="async"
+          onError={onCoverError}
+        />
       </div>
       <div className="book-card-meta">
-        {book.genres && book.genres.length > 0 && (
-          <span className="book-category" style={{ color: categoryColor }}>
-            {book.genres[0]}
-          </span>
-        )}
-        <h3 className="book-title">{book.title}</h3>
-        <p className="book-title-sub">{book.author}</p>
-        
-        <div className="book-card-actions">
-          <button className="btn-primary card-btn-action">
-            See More
-          </button>
-        </div>
+        <h3 className="book-card-title">{book.title}</h3>
+        <p className="book-card-author">{book.author}</p>
+        <p className="book-card-extra">
+          {book.ratingsCount > 0 && (
+            <span className="book-card-rating"><Star size={12} fill="currentColor" /> {book.averageRating.toFixed(1)}</span>
+          )}
+          {genre && <span className="book-card-genre">{genre}</span>}
+          {!genre && book.publishedYear && <span>{book.publishedYear}</span>}
+        </p>
       </div>
     </Link>
   );
 };
 
-export default BookCard;
+/** Placeholder shown while a grid of books loads. */
+export const BookCardSkeleton = () => (
+  <div className="book-card" aria-hidden="true">
+    <div className="book-card-cover skeleton" />
+    <div className="book-card-meta">
+      <div className="skeleton skeleton-text" style={{ width: '90%' }} />
+      <div className="skeleton skeleton-text" style={{ width: '60%' }} />
+    </div>
+  </div>
+);
+
+export const BookGridSkeleton = ({ count = 12 }) => (
+  <div className="books-grid" aria-busy="true" aria-label="Loading books">
+    {Array.from({ length: count }, (_, i) => <BookCardSkeleton key={i} />)}
+  </div>
+);
+
+export default memo(BookCard);

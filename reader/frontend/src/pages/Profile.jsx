@@ -1,5 +1,7 @@
+import usePageTitle from '../hooks/usePageTitle';
+import { coverUrl } from '../utils/covers';
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import axios from 'axios';
+import api, { assetUrl } from '../api/client';
 import { AuthContext } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import './Profile.css';
@@ -9,6 +11,7 @@ import ReadingHeatmap from '../components/ReadingHeatmap';
 import ReadingChallenge from '../components/ReadingChallenge';
 
 const Profile = () => {
+  usePageTitle('My books');
   const [shelves, setShelves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bookToRemove, setBookToRemove] = useState(null);
@@ -24,7 +27,7 @@ const Profile = () => {
     const fetchShelves = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/books/shelves`, config);
+        const { data } = await api.get(`/api/books/shelves`, config);
         setShelves(data);
         setLoading(false);
       } catch (error) {
@@ -45,7 +48,7 @@ const Profile = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       if (bookToRemove.customShelf) {
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/books/${bookToRemove.id}/shelf`, {
+        await api.post(`/api/books/${bookToRemove.id}/shelf`, {
           action: 'remove',
           customShelf: bookToRemove.customShelf
         }, config);
@@ -57,7 +60,7 @@ const Profile = () => {
           return s;
         }).filter(s => s.status || (s.customShelves && s.customShelves.length > 0)));
       } else {
-        await axios.delete(`${import.meta.env.VITE_API_URL}/api/books/${bookToRemove.id}/shelf`, config);
+        await api.delete(`/api/books/${bookToRemove.id}/shelf`, config);
         setShelves(shelves.filter(s => s.book._id !== bookToRemove.id));
       }
       setBookToRemove(null);
@@ -83,7 +86,7 @@ const Profile = () => {
     try {
       setCreatingShelf(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/profile/shelves`, { shelfName }, config);
+      const { data } = await api.post(`/api/auth/profile/shelves`, { shelfName }, config);
       updateUser({ ...user, customShelves: data });
       setNewShelfName('');
       showToast(`Created shelf "${shelfName}"`);
@@ -99,7 +102,7 @@ const Profile = () => {
     if (!shelfToRemove) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.delete(`${import.meta.env.VITE_API_URL}/api/auth/profile/shelves/${encodeURIComponent(shelfToRemove)}`, config);
+      const { data } = await api.delete(`/api/auth/profile/shelves/${encodeURIComponent(shelfToRemove)}`, config);
       updateUser({ ...user, customShelves: data });
       setShelves(shelves.map(s => ({
         ...s,
@@ -129,7 +132,7 @@ const Profile = () => {
           'Content-Type': 'multipart/form-data'
         } 
       };
-      const { data } = await axios.put(`${import.meta.env.VITE_API_URL}/api/auth/profile/photo`, formData, config);
+      const { data } = await api.put(`/api/auth/profile/photo`, formData, config);
       updateUser(data);
       showToast('Profile photo updated successfully!');
     } catch (error) {
@@ -189,7 +192,7 @@ const Profile = () => {
       <div className="profile-header">
         <div className="avatar" style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden' }} onClick={() => fileInputRef.current?.click()} title="Change Photo">
           {user.avatar ? (
-            <img src={`${import.meta.env.VITE_API_URL}${user.avatar}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={assetUrl(user.avatar)} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             user.name.charAt(0).toUpperCase()
           )}
@@ -239,7 +242,7 @@ const Profile = () => {
                     <div key={book._id} className="mini-book-wrapper">
                       <Link to={`/books/${book._id}`} className="mini-book-card">
                         <img 
-                          src={book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg').replace('-M.jpg', '-L.jpg') : FALLBACK_IMAGE} 
+                          src={coverUrl(book.coverImage, 'M')} 
                           alt={book.title} 
                           onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
                         />
@@ -274,7 +277,7 @@ const Profile = () => {
                     <div key={book._id} className="mini-book-wrapper">
                       <Link to={`/books/${book._id}`} className="mini-book-card">
                         <img 
-                          src={book.coverImage ? book.coverImage.replace('-S.jpg', '-L.jpg').replace('-M.jpg', '-L.jpg') : FALLBACK_IMAGE} 
+                          src={coverUrl(book.coverImage, 'M')} 
                           alt={book.title} 
                           onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
                         />
